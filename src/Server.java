@@ -1,7 +1,13 @@
 import java.util.ArrayList;
 import java.util.Random;
 
+
 public class Server {
+    enum State {
+        HEALTHY,
+        CRASHED,
+        INFECTED
+    }
     private String id;
     private State state;
     private String idFaultDetector;
@@ -30,11 +36,11 @@ public class Server {
 
         if(messages != null){
             //right now the only possible message is a ping
-            System.out.println("server received a message");
+            System.out.println(id + " received a message");
 
             Random random = new Random();
             whenToAnswerPing = random.nextInt((maxTimeAnswer - minTimeAnswer) + 1) + minTimeAnswer;
-            System.out.println("going to ping in tik " + whenToAnswerPing);
+            System.out.println(id + " going to ping in tik " + whenToAnswerPing);
         }
 
         if(whenToAnswerPing-- == 0){
@@ -43,7 +49,7 @@ public class Server {
 
     }
 
-        public String getId(){
+    public String getId(){
         return this.id;
     }
 

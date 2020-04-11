@@ -1,36 +1,42 @@
+import java.awt.*;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
-enum State {
-    HEALTHY,
-    CRASHED,
-    INFECTED
-}
-
 public class Environment {
     private int currentTime;
-    private FaultDetector faultDetector;
-    private Server server;
+    private CircularList listPair;
 
-    Environment(){
+    Environment(int num){
+        listPair = new CircularList();
         currentTime = 0;
-        server = new Server("S1", "FD1", 0.5, 0.5, 2, 5);
-        faultDetector = new FaultDetector("FD1", 10, server);
+
+        for(int i=0; i<num; i++){
+            Server server = new Server("S" + i, "FD" + i, 0.5, 0.5, 2, 5);
+            FaultDetector faultDetector = new FaultDetector("FD" + i, 10, "S" + i);
+
+            listPair.addNode(faultDetector, server);
+        }
+
     }
 
     public void decision(){
-        faultDetector.decide(currentTime);
-        server.decide(currentTime);
+        for(int i=0; i<listPair.getSize(); i++){
+            Node n = listPair.getNodeByFDid("FD" + i);
+            n.faultDetector.decide(currentTime);
+            n.server.decide(currentTime);
+        }
         currentTime++;
     }
 
 
 
     public static void main(String args[]) throws IOException {
-        Environment environment = new Environment();
-
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+
+        int numPairs = Integer.parseInt(br.readLine());
+
+        Environment environment = new Environment(numPairs);
 
         while(!(br.readLine()).startsWith("q")) {
             environment.decision();

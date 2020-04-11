@@ -1,17 +1,21 @@
 import java.util.ArrayList;
 
 public class FaultDetector {
+    enum State {
+        HEALTHY,
+        INFECTED
+    }
     private String id;
     private State state;
-    private Server server;
+    private String serverId;
 
     private long frequencyPing;
     private int lastPing;
 
-    FaultDetector(String id, long pingTime, Server server){
+    FaultDetector(String id, long pingTime, String serverId){
         this.state = State.HEALTHY;
         this.id = id;
-        this.server = server;
+        this.serverId = serverId;
         this.frequencyPing = pingTime;
         this.lastPing = -1;
     }
@@ -20,18 +24,22 @@ public class FaultDetector {
         ArrayList<String> messages = NetworkSimulator.readBuffer(id);
 
         if(messages != null) {
-            System.out.println("FD received response of ping");
+            System.out.println(id + " received response of ping");
         }
 
         if(isTimeToPing(time)){
             lastPing = time;
-            System.out.println("Time to ping");
-            NetworkSimulator.writeBuffer(server.getId(), "ping");
+            System.out.println(id + " is time to ping");
+            NetworkSimulator.writeBuffer(serverId, "ping");
         }
     }
 
     private boolean isTimeToPing(int time){
         return (lastPing == -1 || time >= lastPing + frequencyPing);
+    }
+
+    public String getId(){
+        return this.id;
     }
 
 }
