@@ -8,63 +8,92 @@ class NetworkSimulatorTest {
 
     @Test
     void successSimple(){
-        NetworkSimulator.writeBuffer("1", "message1");
-        ArrayList<String> messages = NetworkSimulator.readBuffer("1");
+        NetworkSimulator networkSimulator = new NetworkSimulator();
+
+        networkSimulator.writeBuffer("1", new Message("1", Message.Type.pingRequest));
+        ArrayList<Message> messages = networkSimulator.readBuffer("1");
 
         assertNotNull(messages);
         assertEquals(1, messages.size());
-        assertEquals("message1", messages.get(0));
+        assertEquals("1", messages.get(0).getId());
+        assertEquals(Message.Type.pingRequest, messages.get(0).getType());
 
-        messages = NetworkSimulator.readBuffer("1");
+        messages = networkSimulator.readBuffer("1");
 
         assertNull(messages);
     }
 
     @Test
     void successComplex(){
-        NetworkSimulator.writeBuffer("1", "message1");
-        NetworkSimulator.writeBuffer("2", "message2");
-        NetworkSimulator.writeBuffer("2", "message22");
-        NetworkSimulator.writeBuffer("3", "message3");
-        NetworkSimulator.writeBuffer("1", "message11");
+        NetworkSimulator networkSimulator = new NetworkSimulator();
+
+        networkSimulator.writeBuffer("1", new Message("S1", Message.Type.pingRequest));
+        networkSimulator.writeBuffer("2", new Message("S2", Message.Type.pingRequest));
+        networkSimulator.writeBuffer("2", new Message("S22", Message.Type.pingResponse));
+        networkSimulator.writeBuffer("3", new Message("S3", Message.Type.pingRequest));
+        networkSimulator.writeBuffer("1", new Message("S11", Message.Type.pingResponse));
 
 
         // id == 1
-        ArrayList<String> messages = NetworkSimulator.readBuffer("1");
+        ArrayList<Message> messages = networkSimulator.readBuffer("1");
 
         assertNotNull(messages);
         assertEquals(2, messages.size());
-        assertEquals("message1", messages.get(0));
-        assertEquals("message11", messages.get(1));
+        assertEquals("S1", messages.get(0).getId());
+        assertEquals(Message.Type.pingRequest, messages.get(0).getType());
+        assertEquals("S11", messages.get(1).getId());
+        assertEquals(Message.Type.pingResponse, messages.get(1).getType());
 
-        messages = NetworkSimulator.readBuffer("1");
+        messages = networkSimulator.readBuffer("1");
 
         assertNull(messages);
 
         // id == 2
 
-        messages = NetworkSimulator.readBuffer("2");
+        messages = networkSimulator.readBuffer("2");
 
         assertNotNull(messages);
         assertEquals(2, messages.size());
-        assertEquals("message2", messages.get(0));
-        assertEquals("message22", messages.get(1));
+        assertEquals("S2", messages.get(0).getId());
+        assertEquals(Message.Type.pingRequest, messages.get(0).getType());
+        assertEquals("S22", messages.get(1).getId());
+        assertEquals(Message.Type.pingResponse, messages.get(1).getType());
 
-        messages = NetworkSimulator.readBuffer("2");
+        messages = networkSimulator.readBuffer("2");
 
         assertNull(messages);
 
         // id == 3
 
-        messages = NetworkSimulator.readBuffer("3");
+        messages = networkSimulator.readBuffer("3");
 
         assertNotNull(messages);
         assertEquals(1, messages.size());
-        assertEquals("message3", messages.get(0));
+        assertEquals("S3", messages.get(0).getId());
+        assertEquals(Message.Type.pingRequest, messages.get(0).getType());
 
-        messages = NetworkSimulator.readBuffer("3");
+        messages = networkSimulator.readBuffer("3");
 
         assertNull(messages);
 
+    }
+
+    @Test
+    void successBroadcast() {
+        NetworkSimulator networkSimulator = new NetworkSimulator();
+
+        for(int i=0; i<10; i++){
+            networkSimulator.registerFD("" + i);
+        }
+
+        networkSimulator.broadcast(new Message("1", Message.Type.pingRequest));
+
+        for(int i=0; i<10; i++){
+            ArrayList<Message> messages = networkSimulator.readBuffer("" + i);
+            assertNotNull(messages);
+            assertEquals(1, messages.size());
+            assertEquals(Message.Type.pingRequest, messages.get(0).getType());
+            assertEquals("1", messages.get(0).getId());
+        }
     }
 }
