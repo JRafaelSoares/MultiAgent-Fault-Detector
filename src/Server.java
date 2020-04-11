@@ -11,6 +11,7 @@ public class Server {
     private String id;
     private State state;
     private String idFaultDetector;
+    private NetworkSimulator networkSimulator;
 
     private double probCrashed;
     private double probInfected;
@@ -20,7 +21,7 @@ public class Server {
 
     private int whenToAnswerPing;
 
-    Server(String id, String idFaultDetector, double probCrashed, double probInfected, int minTimeAnswer, int maxTimeAnswer){
+    Server(String id, String idFaultDetector, double probCrashed, double probInfected, int minTimeAnswer, int maxTimeAnswer, NetworkSimulator networkSimulator){
         this.state = State.HEALTHY;
         this.id = id;
         this.idFaultDetector = idFaultDetector;
@@ -29,22 +30,23 @@ public class Server {
         this.minTimeAnswer = minTimeAnswer;
         this.maxTimeAnswer = maxTimeAnswer;
         this.whenToAnswerPing = -1;
+        this.networkSimulator = networkSimulator;
+
     }
 
     public void decide(int time) {
-        ArrayList<String> messages = NetworkSimulator.readBuffer(id);
+        ArrayList<Message> messages = networkSimulator.readBuffer(id);
 
         if(messages != null){
             //right now the only possible message is a ping
-            System.out.println(id + " received a message");
-
             Random random = new Random();
             whenToAnswerPing = random.nextInt((maxTimeAnswer - minTimeAnswer) + 1) + minTimeAnswer;
             System.out.println(id + " going to ping in tik " + whenToAnswerPing);
         }
 
         if(whenToAnswerPing-- == 0){
-            NetworkSimulator.writeBuffer(idFaultDetector, "ping");
+            System.out.println(id + " just pinged");
+            networkSimulator.writeBuffer(idFaultDetector, new Message(idFaultDetector, Message.Type.pingResponse));
         }
 
     }
