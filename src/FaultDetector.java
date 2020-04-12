@@ -94,10 +94,14 @@ public class FaultDetector {
             case serverCrashed:
                 if(!id.equals(m.getId())){
                     faultDetectors.remove(m.getId());
+                    System.out.println(id + " knows " + faultDetectors.size() + " FDs");
                 }
                 break;
             case revived:
-                faultDetectors.add(m.getId());
+                if(!faultDetectors.contains(m.getId())){
+                    faultDetectors.add(m.getId());
+                }
+                System.out.println(id + " knows " + faultDetectors.size() + " FDs");
                 break;
         }
     }
