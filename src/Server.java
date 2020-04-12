@@ -72,13 +72,17 @@ public class Server {
                     System.out.println(id + " am the target");
                     switch (state){
                         case HEALTHY:
-                            networkSimulator.broadcastFDs(new Message(faultDetectorId, Message.Type.serverNotCrashed));
+                            networkSimulator.writeBuffer(m.getId(), new Message(id, Message.Type.serverNotCrashed));
                             break;
                         case CRASHED:
-                            networkSimulator.broadcastFDs(new Message(id, faultDetectorId, Message.Type.serverCrashed));
+                            networkSimulator.writeBuffer(m.getId(), new Message(id, Message.Type.serverCrashed));
                             break;
                     }
                 }
+                break;
+            default:
+                //serverNotCrashed || serverCrashed
+                networkSimulator.writeBuffer(faultDetectorId, new Message(id, m.getId(), m.getType()));
                 break;
         }
     }

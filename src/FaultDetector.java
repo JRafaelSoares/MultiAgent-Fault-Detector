@@ -44,7 +44,7 @@ public class FaultDetector {
 
         if(hasCrashed(time)){
             System.out.println(id + " has crashed? ");
-            networkSimulator.broadcastFDs(new Message(id, serverId, Message.Type.serverCrashed));
+            networkSimulator.broadcastFDs(new Message(id, serverId, Message.Type.hasServerCrashed));
             waitingForPing = false;
         }
 
@@ -71,21 +71,34 @@ public class FaultDetector {
                 System.out.println(id + " pingResponse");
                 waitingForPing = false;
                 break;
-            case serverCrashed:
+            case hasServerCrashed:
                 if(!m.getId().equals(id) && neighbours.contains(m.getId())){
+                    //my neighbour thinks its server has crashed
                     networkSimulator.writeBuffer(serverId, new Message(serverId, m.getIdTarget(), Message.Type.hasServerCrashed));
-                    //networkSimulator.broadcastFDs(new Message(m.getId(), Message.Type.serverNotCrashed));
                     break;
                 }
-                if(m.getId().equals(id)){
-                    if(++confirmedCrashed == 2){
-                        System.out.println(id + " CONFIRMED CRASHED, I REPEAT, CONFIRMED CRASHED");
+            case serverCrashed:
+                if(serverId.equals(m.getId())){
+                    if(m.getIdTarget() != null){
+                        //its my server telling me that the neighbour has or has not crashed
+                        networkSimulator.broadcastFDs(new Message(m.getIdTarget(), m.getType()));
+                    }else{
+                        //its my neighbour FD telling me that my server has or has not crashed
+                        if(++confirmedCrashed == 2){
+                            System.out.println(id + " CONFIRMED CRASHED, I REPEAT, CONFIRMED CRASHED");
+                        }
+                        break;
                     }
-                    break;
                 }
             case serverNotCrashed:
-                if(m.getId().equals(id)){
-                    System.out.println(id + " false alarm, server has NOT crashed");
+                if(serverId.equals(m.getId())){
+                    if(m.getIdTarget() != null){
+                        //its my server telling me that the neighbour has or has not crashed
+                        networkSimulator.broadcastFDs(new Message(m.getIdTarget(), m.getType()));
+                    }else{
+                        //its my neighbour FD telling me that my server has or has not crashed
+                        System.out.println(id + " false alarm, server has NOT crashed");
+                    }
                 }
                 break;
         }
