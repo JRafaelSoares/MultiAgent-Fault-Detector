@@ -1,31 +1,36 @@
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 
 public class Environment {
     private int currentTime;
-    private CircularList listPair;
+    private ArrayList<Pair> listPair;
 
     Environment(int num){
-        listPair = new CircularList();
+        listPair = new ArrayList<>();
         currentTime = 0;
         NetworkSimulator networkSimulator = new NetworkSimulator();
+        ArrayList<String> l = new ArrayList<>();
 
         for(int i=0; i<num; i++){
-            Server server = new Server("S" + i, "FD" + i, 0.5, 0.5, 2, 5, networkSimulator);
+            Server server = new Server("S" + i, "FD" + i, 0.01, 0.5, 2, 5, networkSimulator);
             FaultDetector faultDetector = new FaultDetector("FD" + i, 10, "S" + i, networkSimulator);
 
-            listPair.addNode(faultDetector, server);
+            listPair.add(new Pair(faultDetector, server));
+            l.add("FD" + i);
         }
-        listPair.setAllNeighbours();
+
+        for(Pair p : listPair){
+            p.getFaultDetector().setFaultDetectors(l);
+        }
+
     }
 
     public void decision(){
-        for(int i=0; i<listPair.getSize(); i++){
-            Node n = listPair.getNodeByFDid("FD" + i);
-
-            n.faultDetector.decide(currentTime);
-            n.server.decide(currentTime);
+        for(Pair p : listPair){
+            p.getFaultDetector().decide(currentTime);
+            p.getServer().decide();
         }
         currentTime++;
     }

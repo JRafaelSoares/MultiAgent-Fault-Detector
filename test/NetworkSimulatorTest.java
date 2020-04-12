@@ -78,22 +78,4 @@ class NetworkSimulatorTest {
 
     }
 
-    @Test
-    void successBroadcast() {
-        NetworkSimulator networkSimulator = new NetworkSimulator();
-
-        for(int i=0; i<10; i++){
-            networkSimulator.registerFD("" + i);
-        }
-
-        networkSimulator.broadcastFDs(new Message("1", Message.Type.pingRequest));
-
-        for(int i=0; i<10; i++){
-            ArrayList<Message> messages = networkSimulator.readBuffer("" + i);
-            assertNotNull(messages);
-            assertEquals(1, messages.size());
-            assertEquals(Message.Type.pingRequest, messages.get(0).getType());
-            assertEquals("1", messages.get(0).getId());
-        }
-    }
 }

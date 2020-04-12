@@ -1,5 +1,3 @@
-import java.util.ArrayList;
-
 class Node {
 
     FaultDetector faultDetector;
@@ -9,8 +7,8 @@ class Node {
     Node prevNode;
 
     public Node(FaultDetector faultDetector, Server server) {
-        this.server = server;
         this.faultDetector = faultDetector;
+        this.server = server;
     }
 }
 
@@ -59,26 +57,11 @@ public class CircularList {
         }
     }
 
-    public void setAllNeighbours(){
-        Node currentNode = head;
-
-        if (head != null) {
-            do {
-                ArrayList<String> l = new ArrayList<>();
-                l.add(currentNode.nextNode.faultDetector.getId());
-                l.add(currentNode.prevNode.faultDetector.getId());
-                currentNode.faultDetector.setNeighbours(l);
-
-                currentNode = currentNode.nextNode;
-            } while (currentNode != head);
-        }
-    }
-
     public int getSize(){
         return size;
     }
 
-    public void print() {
+    public void print_FD_Server() {
         Node currentNode = head;
 
         if (head != null) {

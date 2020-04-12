@@ -3,6 +3,7 @@ import java.util.ArrayList;
 public class FaultDetector {
     enum State {
         HEALTHY,
+        CRASHED,
         INFECTED
     }
 
@@ -12,10 +13,12 @@ public class FaultDetector {
     private  NetworkSimulator networkSimulator;
     private ArrayList<String> faultDetectors;
 
-    private ArrayList<String> neighbours;
+    //crashed variables
+    private int timeToReboot = 10;
+    private int timeCrashed;
 
     //ping variables
-    private int maxWaitingTime = 5;
+    private int maxWaitingTime = 6;
     private long frequencyPing;
     private int lastPing;
     private boolean waitingForPing = false;
@@ -27,30 +30,51 @@ public class FaultDetector {
         this.frequencyPing = pingTime;
         this.lastPing = -1;
         this.networkSimulator = networkSimulator;
-
-        this.networkSimulator.registerFD(id);
     }
 
     public void decide(int time){
+        switch (state){
+            case HEALTHY:
+                System.out.println(id + " alive");
+                decideHealthy(time);
+                break;
+            case CRASHED:
+                System.out.println(id + " crashed");
+                decideCrashed(time);
+                break;
+        }
+    }
+
+    private void decideHealthy(int time){
         ArrayList<Message> messages = networkSimulator.readBuffer(id);
 
         if(messages != null) {
             for(Message m : messages){
-               processMessage(m);
+                processMessage(m);
             }
         }
 
         if(hasCrashed(time)){
-            System.out.println(id + " has crashed");
-            networkSimulator.broadcastFDs(new Message(id, Message.Type.serverCrashed));
+            System.out.println(id + " thinks its server has crashed");
+            broadcastFDs(new Message(id, Message.Type.serverCrashed));
             waitingForPing = false;
+
+            timeCrashed = 0;
+            state = State.CRASHED;
         }
 
         if(isTimeToPing(time)){
             waitingForPing = true;
             lastPing = time;
-            System.out.println(id + " is time to ping");
             networkSimulator.writeBuffer(serverId, new Message(serverId, Message.Type.pingRequest));
+        }
+    }
+
+    private void decideCrashed(int time){
+        if(++timeCrashed == timeToReboot){
+            broadcastFDs(new Message(id, Message.Type.revived));
+            networkSimulator.writeBuffer(serverId, new Message(id, Message.Type.revived));
+            state = State.HEALTHY;
         }
     }
 
@@ -65,13 +89,22 @@ public class FaultDetector {
     private void processMessage(Message m){
         switch (m.getType()){
             case pingResponse:
-                System.out.println(id + " pingResponse");
                 waitingForPing = false;
                 break;
             case serverCrashed:
                 if(!id.equals(m.getId())){
-                    System.out.println("I am " + id + " and " + m.getId() + " server has crashed");
+                    faultDetectors.remove(m.getId());
                 }
+                break;
+            case revived:
+                faultDetectors.add(m.getId());
+                break;
+        }
+    }
+
+    public void broadcastFDs(Message message){
+        for(String id : faultDetectors){
+            networkSimulator.writeBuffer(id, message);
         }
     }
 
@@ -79,9 +112,8 @@ public class FaultDetector {
         return this.id;
     }
 
-    public void setNeighbours(ArrayList<String> n){
-        this.neighbours = n;
+    public void setFaultDetectors(ArrayList<String> l){
+        this.faultDetectors = l;
     }
-    
 
 }

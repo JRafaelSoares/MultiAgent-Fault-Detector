@@ -34,7 +34,30 @@ public class Server {
 
     }
 
-    public void decide(int time) {
+    public void decide() {
+        switch (state){
+            case HEALTHY:
+                System.out.println(id + " alive ");
+                decideHealthy();
+                break;
+            case CRASHED:
+                System.out.println(id + " crashed ");
+                decideCrashed();
+                break;
+        }
+    }
+
+    private void processMessage(Message m){
+        //right now the only possible message is a ping
+        switch (m.getType()){
+            case pingRequest:
+                Random random = new Random();
+                whenToAnswerPing = random.nextInt((maxTimeAnswer - minTimeAnswer) + 1) + minTimeAnswer;
+                break;
+        }
+    }
+
+    private void decideHealthy(){
         ArrayList<Message> messages = networkSimulator.readBuffer(id);
 
         if(messages != null){
@@ -44,20 +67,22 @@ public class Server {
         }
 
         if(whenToAnswerPing-- == 0){
-            System.out.println(id + " just pinged");
             networkSimulator.writeBuffer(faultDetectorId, new Message(faultDetectorId, Message.Type.pingResponse));
         }
 
+        if(new Random().nextDouble() <= probCrashed){
+            state = State.CRASHED;
+        }
     }
+    private void decideCrashed() {
+        ArrayList<Message> messages = networkSimulator.readBuffer(id);
 
-    private void processMessage(Message m){
-        //right now the only possible message is a ping
-        switch (m.getType()){
-            case pingRequest:
-                Random random = new Random();
-                whenToAnswerPing = random.nextInt((maxTimeAnswer - minTimeAnswer) + 1) + minTimeAnswer;
-                System.out.println(id + " going to ping in tik " + whenToAnswerPing);
-                break;
+        if(messages != null){
+            for(Message m : messages){
+                if(m.getType().equals(Message.Type.revived)){
+                    state = State.HEALTHY;
+                }
+            }
         }
     }
 

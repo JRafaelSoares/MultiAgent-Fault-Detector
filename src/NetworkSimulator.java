@@ -3,8 +3,6 @@ import java.util.HashMap;
 
 public class NetworkSimulator {
     private HashMap<String, ArrayList<Message>> buffer = new HashMap<>();
-    private ArrayList<String> faultDetectors = new ArrayList<>();
-
     public ArrayList<Message> readBuffer(String id){
         if(buffer.containsKey(id)){
             return buffer.remove(id);
@@ -20,19 +18,6 @@ public class NetworkSimulator {
             newList.add(message);
 
             buffer.put(id, newList);
-        }
-    }
-
-    public void registerFD(String id){
-        if(faultDetectors.contains(id)){
-            System.out.println(id + " is already registered.");
-        }
-        faultDetectors.add(id);
-    }
-
-    public void broadcastFDs(Message message){
-        for(String id : faultDetectors){
-            writeBuffer(id, message);
         }
     }
 }
