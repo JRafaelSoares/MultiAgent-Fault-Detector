@@ -38,43 +38,18 @@ public class FaultDetector {
 
         if(messages != null) {
             for(Message m : messages){
-                switch (m.getType()){
-                    case pingResponse:
-                        System.out.println(id + " pingResponse");
-                        waitingForPing = false;
-                        break;
-                    case serverCrashed:
-                        if(!m.getId().equals(id) && neighbours.contains(m.getId())){
-                            //TODO missing actual verification that server has not crashed
-                            networkSimulator.broadcast(new Message(m.getId(), Message.Type.serverNotCrashed));
-                            break;
-                        }
-                        if(m.getId().equals(id)){
-                            confirmedCrashed++;
-                            if(confirmedCrashed == 2){
-                                System.out.println(id + " CONFIRMED CRASHED, I REPEAT, CONFIRMED CRASHED");
-                            }
-                            break;
-                        }
-                    case serverNotCrashed:
-                        if(m.getId().equals(id)){
-                            confirmedCrashed = 0;
-                            System.out.println(id + " false alarm, server has NOT crashed");
-                        }
-                        break;
-                }
+               processMessage(m);
             }
-        }else{
-            int timePassed = time - lastPing;
+        }
 
-            if(waitingForPing  && timePassed >= maxWaitingTime){
-                networkSimulator.broadcast(new Message(id, Message.Type.serverCrashed));
-                waitingForPing = false;
-            }
-
+        if(hasCrashed(time)){
+            System.out.println(id + " has crashed? ");
+            networkSimulator.broadcastFDs(new Message(id, serverId, Message.Type.serverCrashed));
+            waitingForPing = false;
         }
 
         if(isTimeToPing(time)){
+            confirmedCrashed = 0;
             waitingForPing = true;
             lastPing = time;
             System.out.println(id + " is time to ping");
@@ -84,6 +59,36 @@ public class FaultDetector {
 
     private boolean isTimeToPing(int time){
         return (lastPing == -1 || time >= lastPing + frequencyPing);
+    }
+
+    private boolean hasCrashed(int time){
+        return (waitingForPing  && (time - lastPing) >= maxWaitingTime);
+    }
+
+    private void processMessage(Message m){
+        switch (m.getType()){
+            case pingResponse:
+                System.out.println(id + " pingResponse");
+                waitingForPing = false;
+                break;
+            case serverCrashed:
+                if(!m.getId().equals(id) && neighbours.contains(m.getId())){
+                    networkSimulator.writeBuffer(serverId, new Message(serverId, m.getIdTarget(), Message.Type.hasServerCrashed));
+                    //networkSimulator.broadcastFDs(new Message(m.getId(), Message.Type.serverNotCrashed));
+                    break;
+                }
+                if(m.getId().equals(id)){
+                    if(++confirmedCrashed == 2){
+                        System.out.println(id + " CONFIRMED CRASHED, I REPEAT, CONFIRMED CRASHED");
+                    }
+                    break;
+                }
+            case serverNotCrashed:
+                if(m.getId().equals(id)){
+                    System.out.println(id + " false alarm, server has NOT crashed");
+                }
+                break;
+        }
     }
 
     public String getId(){

@@ -86,7 +86,7 @@ class NetworkSimulatorTest {
             networkSimulator.registerFD("" + i);
         }
 
-        networkSimulator.broadcast(new Message("1", Message.Type.pingRequest));
+        networkSimulator.broadcastFDs(new Message("1", Message.Type.pingRequest));
 
         for(int i=0; i<10; i++){
             ArrayList<Message> messages = networkSimulator.readBuffer("" + i);

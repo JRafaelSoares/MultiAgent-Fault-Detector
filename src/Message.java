@@ -3,9 +3,11 @@ public class Message {
         pingRequest,
         pingResponse,
         serverCrashed,
-        serverNotCrashed
+        serverNotCrashed,
+        hasServerCrashed
     }
     private String id;
+    private String idTarget;
     private Type type;
 
     Message(String id, Type type){
@@ -13,12 +15,23 @@ public class Message {
         this.type = type;
     }
 
+    Message(String id, String idTarget, Type type){
+        this.id = id;
+        this.idTarget = idTarget;
+        this.type = type;
+    }
+
+
     public String getId(){
         return id;
     }
 
     public Type getType(){
         return type;
+    }
+
+    public String getIdTarget(){
+        return idTarget;
     }
 
 }
