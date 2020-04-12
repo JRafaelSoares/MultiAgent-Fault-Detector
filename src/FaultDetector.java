@@ -72,8 +72,8 @@ public class FaultDetector {
 
     private void decideCrashed(int time){
         if(++timeCrashed == timeToReboot){
-            broadcastFDs(new Message(id, Message.Type.revived));
             networkSimulator.writeBuffer(serverId, new Message(id, Message.Type.revived));
+            faultDetectors.add(id);
             state = State.HEALTHY;
         }
     }
@@ -96,12 +96,6 @@ public class FaultDetector {
                     faultDetectors.remove(m.getId());
                     System.out.println(id + " knows " + faultDetectors.size() + " FDs");
                 }
-                break;
-            case revived:
-                if(!faultDetectors.contains(m.getId())){
-                    faultDetectors.add(m.getId());
-                }
-                System.out.println(id + " knows " + faultDetectors.size() + " FDs");
                 break;
         }
     }
