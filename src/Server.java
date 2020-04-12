@@ -32,7 +32,6 @@ public class Server {
         this.whenToAnswerPing = -1;
         this.networkSimulator = networkSimulator;
 
-        this.networkSimulator.registerServer(id);
     }
 
     public void decide(int time) {
@@ -58,31 +57,6 @@ public class Server {
                 Random random = new Random();
                 whenToAnswerPing = random.nextInt((maxTimeAnswer - minTimeAnswer) + 1) + minTimeAnswer;
                 System.out.println(id + " going to ping in tik " + whenToAnswerPing);
-                break;
-            case hasServerCrashed:
-                System.out.println(id + " received a hasServerCrashed");
-                //if i am the neighbours server and need to ask the other server
-                if(id.equals(m.getId())){
-                    System.out.println(id + " am a neighbour");
-                    networkSimulator.writeBuffer(m.getIdTarget() , new Message(id, m.getIdTarget(), Message.Type.hasServerCrashed));
-                    break;
-                }
-                // if i am the target server
-                if(id.equals(m.getIdTarget())){
-                    System.out.println(id + " am the target");
-                    switch (state){
-                        case HEALTHY:
-                            networkSimulator.writeBuffer(m.getId(), new Message(id, Message.Type.serverNotCrashed));
-                            break;
-                        case CRASHED:
-                            networkSimulator.writeBuffer(m.getId(), new Message(id, Message.Type.serverCrashed));
-                            break;
-                    }
-                }
-                break;
-            default:
-                //serverNotCrashed || serverCrashed
-                networkSimulator.writeBuffer(faultDetectorId, new Message(id, m.getId(), m.getType()));
                 break;
         }
     }
