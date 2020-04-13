@@ -3,6 +3,7 @@ public class Message {
         pingRequest,
         pingResponse,
         serverCrashed,
+        serverNotCrashed,
         revived
     }
     private String id;

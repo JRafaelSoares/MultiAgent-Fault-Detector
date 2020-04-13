@@ -13,6 +13,7 @@ public class Server {
     private String faultDetectorId;
     private NetworkSimulator networkSimulator;
 
+    private int invulnerabilityTime = 30;
     private double probCrashed;
     private double probInfected;
 
@@ -54,6 +55,9 @@ public class Server {
                 Random random = new Random();
                 whenToAnswerPing = random.nextInt((maxTimeAnswer - minTimeAnswer) + 1) + minTimeAnswer;
                 break;
+            case serverCrashed:
+                networkSimulator.writeBuffer(faultDetectorId, new Message(id, state == State.HEALTHY ? Message.Type.serverNotCrashed : Message.Type.serverCrashed));
+                break;
         }
     }
 
@@ -70,7 +74,7 @@ public class Server {
             networkSimulator.writeBuffer(faultDetectorId, new Message(faultDetectorId, Message.Type.pingResponse));
         }
 
-        if(new Random().nextDouble() <= probCrashed){
+        if(--invulnerabilityTime <= 0 && new Random().nextDouble() <= probCrashed){
             state = State.CRASHED;
         }
     }

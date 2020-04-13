@@ -13,23 +13,30 @@ public class FaultDetector {
     private  NetworkSimulator networkSimulator;
     private ArrayList<String> faultDetectors;
 
+    private int invulnerabilityTime = 30;
+
     //crashed variables
     private int timeToReboot = 10;
     private int timeCrashed;
 
     //ping variables
-    private int maxWaitingTime = 6;
     private long frequencyPing;
     private int lastPing;
     private boolean waitingForPing = false;
+    private Distribution distribution;
 
-    FaultDetector(String id, long pingTime, String serverId, NetworkSimulator networkSimulator){
+    //statistics
+    private double correctCrash = 0;
+    private double incorrectCrash = 0;
+
+    FaultDetector(String id, long pingTime, String serverId, NetworkSimulator networkSimulator, Distribution d){
         this.state = State.HEALTHY;
         this.id = id;
         this.serverId = serverId;
         this.frequencyPing = pingTime;
         this.lastPing = -1;
         this.networkSimulator = networkSimulator;
+        this.distribution = d;
     }
 
     public void decide(int time){
@@ -40,7 +47,7 @@ public class FaultDetector {
                 break;
             case CRASHED:
                 System.out.println(id + " crashed");
-                decideCrashed(time);
+                decideCrashed();
                 break;
         }
     }
@@ -50,17 +57,18 @@ public class FaultDetector {
 
         if(messages != null) {
             for(Message m : messages){
-                processMessage(m);
+                processMessage(m, time);
             }
         }
 
-        if(hasCrashed(time)){
-            System.out.println(id + " thinks its server has crashed");
+        if(--invulnerabilityTime <=0 && waitingForPing && hasCrashed(time)){
             broadcastFDs(new Message(id, Message.Type.serverCrashed));
-            waitingForPing = false;
 
+            waitingForPing = false;
             timeCrashed = 0;
             state = State.CRASHED;
+
+            networkSimulator.writeBuffer(serverId, new Message(id, Message.Type.serverCrashed));
         }
 
         if(isTimeToPing(time)){
@@ -70,7 +78,22 @@ public class FaultDetector {
         }
     }
 
-    private void decideCrashed(int time){
+    private void decideCrashed(){
+        ArrayList<Message> messages = networkSimulator.readBuffer(id);
+
+        if(messages != null){
+            for(Message m : messages){
+                switch (m.getType()){
+                    case serverCrashed:
+                        correctCrash++;
+                        break;
+                    case serverNotCrashed:
+                        incorrectCrash++;
+                        break;
+                }
+            }
+        }
+
         if(++timeCrashed == timeToReboot){
             networkSimulator.writeBuffer(serverId, new Message(id, Message.Type.revived));
             faultDetectors.add(id);
@@ -83,18 +106,24 @@ public class FaultDetector {
     }
 
     private boolean hasCrashed(int time){
-        return (waitingForPing  && (time - lastPing) >= maxWaitingTime);
+        int waitedTime = time - lastPing;
+        double p = distribution.getProbability(waitedTime);
+
+        if(p < 0.10){
+            return true;
+        }
+        return false;
     }
 
-    private void processMessage(Message m){
+    private void processMessage(Message m, int time){
         switch (m.getType()){
             case pingResponse:
                 waitingForPing = false;
+                distribution.addData(time - lastPing);
                 break;
             case serverCrashed:
                 if(!id.equals(m.getId())){
                     faultDetectors.remove(m.getId());
-                    System.out.println(id + " knows " + faultDetectors.size() + " FDs");
                 }
                 break;
         }
@@ -114,4 +143,7 @@ public class FaultDetector {
         this.faultDetectors = l;
     }
 
+    public double getRacioCrashCorrectness(){
+        return incorrectCrash == 0 && correctCrash == 0 ? 100 : (correctCrash / (incorrectCrash + correctCrash) *100);
+    }
 }
