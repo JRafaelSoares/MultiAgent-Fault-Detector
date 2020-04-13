@@ -13,7 +13,7 @@ public class Server {
     private String faultDetectorId;
     private NetworkSimulator networkSimulator;
 
-    private int invulnerabilityTime = 30;
+    private int invulnerabilityTime = 100;
     private double probCrashed;
     private double probInfected;
 
@@ -38,11 +38,9 @@ public class Server {
     public void decide() {
         switch (state){
             case HEALTHY:
-                System.out.println(id + " alive ");
                 decideHealthy();
                 break;
             case CRASHED:
-                System.out.println(id + " crashed ");
                 decideCrashed();
                 break;
         }

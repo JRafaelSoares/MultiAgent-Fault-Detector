@@ -39,7 +39,7 @@ public class Environment {
     public String getStatistics(){
         StringBuilder res = new StringBuilder();
         for(Pair p : listPair){
-            res.append(p.getFaultDetector().getRacioCrashCorrectness()).append(", ");
+            res.append(p.getFaultDetector().getStatistics()).append("\n\n");
         }
         return res.toString();
     }
@@ -57,7 +57,7 @@ public class Environment {
             for(int i=0; i<step; i++){
                 environment.decision();
             }
-            System.out.println("Statistic: " + environment.getStatistics());
+            System.out.println("\nStatistics: \n" + environment.getStatistics());
         }
     }
 }

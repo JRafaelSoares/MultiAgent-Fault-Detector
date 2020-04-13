@@ -13,7 +13,7 @@ public class FaultDetector {
     private  NetworkSimulator networkSimulator;
     private ArrayList<String> faultDetectors;
 
-    private int invulnerabilityTime = 30;
+    private int invulnerabilityTime = 100;
 
     //crashed variables
     private int timeToReboot = 10;
@@ -42,11 +42,9 @@ public class FaultDetector {
     public void decide(int time){
         switch (state){
             case HEALTHY:
-                System.out.println(id + " alive");
                 decideHealthy(time);
                 break;
             case CRASHED:
-                System.out.println(id + " crashed");
                 decideCrashed();
                 break;
         }
@@ -143,7 +141,12 @@ public class FaultDetector {
         this.faultDetectors = l;
     }
 
-    public double getRacioCrashCorrectness(){
-        return incorrectCrash == 0 && correctCrash == 0 ? 100 : (correctCrash / (incorrectCrash + correctCrash) *100);
+    public String getStatistics(){
+        StringBuilder res = new StringBuilder(id + "\n");
+
+        res.append("Number of crashes: ").append(correctCrash + incorrectCrash).append("\n");
+        res.append("Crash detection success: ").append((correctCrash == 0 ? 100 : (correctCrash / (incorrectCrash + correctCrash) *100))).append("\n");
+
+        return res.toString();
     }
 }
