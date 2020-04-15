@@ -4,6 +4,8 @@ import java.util.ArrayList;
 
 public class FaultDetector {
 
+    private boolean debug = false;
+
     private String id;
     private State state;
     private String serverId;
@@ -45,11 +47,11 @@ public class FaultDetector {
     public void decide(int time){
         switch (state){
             case HEALTHY:
-                System.out.println(id + " healthy");
+                if(debug) System.out.println(id + " healthy");
                 decideHealthy(time);
                 break;
             case CRASHED:
-                System.out.println(id + " crashed");
+                if(debug) System.out.println(id + " crashed");
                 decideCrashed();
                 break;
         }
@@ -137,11 +139,8 @@ public class FaultDetector {
     private void processMessageCrashed(Message m){
         switch (m.getType()){
             case serverStateResponse:
-                System.out.println("received server response: " + m.getState());
                 if(m.getState().equals(State.CRASHED)){
                     correctCrash++;
-                }else{
-                    System.out.println("WROOOOOOOOOOOOOOONG");
                 }
                 break;
             case revived:

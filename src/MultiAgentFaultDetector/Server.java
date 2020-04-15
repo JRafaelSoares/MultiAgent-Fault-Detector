@@ -5,6 +5,9 @@ import java.util.Random;
 
 
 public class Server {
+
+    private boolean debug = false;
+
     private String id;
     private State state;
     private String faultDetectorId;
@@ -42,25 +45,12 @@ public class Server {
     public void decide() {
         switch (state){
             case HEALTHY:
-                System.out.println(id + " healthy");
+                if(debug) System.out.println(id + " healthy");
                 decideHealthy();
                 break;
             case CRASHED:
-                System.out.println(id + " crashed");
+                if(debug) System.out.println(id + " crashed");
                 decideCrashed();
-                break;
-        }
-    }
-
-    private void processMessage(Message m){
-        switch (m.getType()){
-            case pingRequest:
-                Random random = new Random();
-                whenToAnswerPing = random.nextInt((maxTimeAnswer - minTimeAnswer) + 1) + minTimeAnswer;
-                break;
-            case serverStateRequest:
-                System.out.println("received statistics request");
-                networkSimulator.writeBuffer(faultDetectorId, new Message(id, Message.Type.serverStateResponse, state));
                 break;
         }
     }
@@ -70,7 +60,7 @@ public class Server {
 
         if(messages != null){
             for(Message m : messages){
-                processMessage(m);
+                processMessageHealthy(m);
             }
         }
 
@@ -78,7 +68,7 @@ public class Server {
             networkSimulator.writeBuffer(faultDetectorId, new Message(faultDetectorId, Message.Type.pingResponse));
         }
 
-        if(--currentInvulnerabilityTime <= 0 && hasCrashed()){
+        if(hasCrashed()){
             state = State.CRASHED;
         }
     }
@@ -88,22 +78,36 @@ public class Server {
 
         if(messages != null){
             for(Message m : messages){
-                switch (m.getType()){
-                    case revived:
-                        state = State.HEALTHY;
-                        currentInvulnerabilityTime = invulnerabilityTime;
-                        break;
-                    case serverStateRequest:
-                        System.out.println("received statistics request");
-                        networkSimulator.writeBuffer(faultDetectorId, new Message(id, Message.Type.serverStateResponse, state));
-                        break;
-                }
+                processMessageCrashed(m);
             }
         }
     }
 
+    private void processMessageHealthy(Message m){
+        switch (m.getType()){
+            case pingRequest:
+                Random random = new Random();
+                whenToAnswerPing = random.nextInt((maxTimeAnswer - minTimeAnswer) + 1) + minTimeAnswer;
+                break;
+            case serverStateRequest:
+                networkSimulator.writeBuffer(faultDetectorId, new Message(id, Message.Type.serverStateResponse, state));
+                break;
+        }
+    }
+    private void processMessageCrashed(Message m) {
+        switch (m.getType()){
+            case revived:
+                state = State.HEALTHY;
+                currentInvulnerabilityTime = invulnerabilityTime;
+                break;
+            case serverStateRequest:
+                networkSimulator.writeBuffer(faultDetectorId, new Message(id, Message.Type.serverStateResponse, state));
+                break;
+        }
+    }
+
     private boolean hasCrashed(){
-        return new Random().nextDouble() <= probCrashed;
+        return --currentInvulnerabilityTime <= 0 && new Random().nextDouble() <= probCrashed;
     }
 
     public String getId(){
