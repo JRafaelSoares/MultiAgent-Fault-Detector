@@ -14,10 +14,12 @@ public class FaultDetector {
     private ArrayList<String> faultDetectors;
 
     private int invulnerabilityTime = 100;
+    private int currentInvulnerabilityTime;
 
     //crashed variables
     private int timeToReboot = 10;
     private int timeCrashed;
+    private double uncertaintyPercentage = 0.1;
 
     //ping variables
     private long frequencyPing;
@@ -33,6 +35,7 @@ public class FaultDetector {
         this.state = State.HEALTHY;
         this.id = id;
         this.serverId = serverId;
+        this.currentInvulnerabilityTime = invulnerabilityTime;
         this.frequencyPing = pingTime;
         this.lastPing = -1;
         this.networkSimulator = networkSimulator;
@@ -42,9 +45,11 @@ public class FaultDetector {
     public void decide(int time){
         switch (state){
             case HEALTHY:
+                System.out.println(id + " healthy");
                 decideHealthy(time);
                 break;
             case CRASHED:
+                System.out.println(id + " crashed");
                 decideCrashed();
                 break;
         }
@@ -59,11 +64,12 @@ public class FaultDetector {
             }
         }
 
-        if(--invulnerabilityTime <=0 && waitingForPing && hasCrashed(time)){
+        if(--currentInvulnerabilityTime <=0 && waitingForPing && hasCrashed(time)){
             broadcastFDs(new Message(id, Message.Type.serverCrashed));
 
             waitingForPing = false;
             timeCrashed = 0;
+            currentInvulnerabilityTime = invulnerabilityTime;
             state = State.CRASHED;
 
             networkSimulator.writeBuffer(serverId, new Message(id, Message.Type.serverCrashed));
@@ -107,7 +113,7 @@ public class FaultDetector {
         int waitedTime = time - lastPing;
         double p = distribution.getProbability(waitedTime);
 
-        if(p < 0.10){
+        if(p < uncertaintyPercentage){
             return true;
         }
         return false;
@@ -141,9 +147,11 @@ public class FaultDetector {
         this.faultDetectors = l;
     }
 
-    public String getStatistics(){
+    public String getStatistics(int time){
         StringBuilder res = new StringBuilder(id + "\n");
 
+        String s = String.format("Crash percentage: %.2f", (correctCrash + incorrectCrash)/time * 100);
+        res.append(s).append("%\n");
         res.append("Number of crashes: ").append(correctCrash + incorrectCrash).append("\n");
         res.append("Crash detection success: ").append((correctCrash == 0 ? 100 : (correctCrash / (incorrectCrash + correctCrash) *100))).append("\n");
 

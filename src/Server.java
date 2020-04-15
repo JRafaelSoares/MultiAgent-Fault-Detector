@@ -14,9 +14,15 @@ public class Server {
     private NetworkSimulator networkSimulator;
 
     private int invulnerabilityTime = 100;
+    private int currentInvulnerabilityTime;
+
+    //crashed variables
     private double probCrashed;
+
+    //infected variables
     private double probInfected;
 
+    //ping variables
     private int minTimeAnswer;
     private int maxTimeAnswer;
 
@@ -26,6 +32,7 @@ public class Server {
         this.state = State.HEALTHY;
         this.id = id;
         this.faultDetectorId = idFaultDetector;
+        this.currentInvulnerabilityTime = invulnerabilityTime;
         this.probCrashed = probCrashed;
         this.probInfected = probInfected;
         this.minTimeAnswer = minTimeAnswer;
@@ -47,7 +54,6 @@ public class Server {
     }
 
     private void processMessage(Message m){
-        //right now the only possible message is a ping
         switch (m.getType()){
             case pingRequest:
                 Random random = new Random();
@@ -72,10 +78,11 @@ public class Server {
             networkSimulator.writeBuffer(faultDetectorId, new Message(faultDetectorId, Message.Type.pingResponse));
         }
 
-        if(--invulnerabilityTime <= 0 && new Random().nextDouble() <= probCrashed){
+        if(--currentInvulnerabilityTime <= 0 && hasCrashed()){
             state = State.CRASHED;
         }
     }
+
     private void decideCrashed() {
         ArrayList<Message> messages = networkSimulator.readBuffer(id);
 
@@ -83,9 +90,14 @@ public class Server {
             for(Message m : messages){
                 if(m.getType().equals(Message.Type.revived)){
                     state = State.HEALTHY;
+                    currentInvulnerabilityTime = invulnerabilityTime;
                 }
             }
         }
+    }
+
+    private boolean hasCrashed(){
+        return new Random().nextDouble() <= probCrashed;
     }
 
     public String getId(){

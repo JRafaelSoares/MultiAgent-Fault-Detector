@@ -37,9 +37,9 @@ public class Environment {
     }
 
     public String getStatistics(){
-        StringBuilder res = new StringBuilder();
+        StringBuilder res = new StringBuilder("Number of TIKS: " + currentTime + "\n\n");
         for(Pair p : listPair){
-            res.append(p.getFaultDetector().getStatistics()).append("\n\n");
+            res.append(p.getFaultDetector().getStatistics(currentTime)).append("\n\n");
         }
         return res.toString();
     }
