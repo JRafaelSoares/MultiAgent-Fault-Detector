@@ -1,3 +1,5 @@
+package MultiAgentFaultDetector;
+
 import org.apache.commons.math3.distribution.NormalDistribution;
 
 import java.util.ArrayList;

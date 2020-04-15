@@ -1,11 +1,8 @@
+package MultiAgentFaultDetector;
+
 import java.util.ArrayList;
 
 public class FaultDetector {
-    enum State {
-        HEALTHY,
-        CRASHED,
-        INFECTED
-    }
 
     private String id;
     private State state;
@@ -28,8 +25,10 @@ public class FaultDetector {
     private Distribution distribution;
 
     //statistics
+    private double numCrashes = 0;
     private double correctCrash = 0;
-    private double incorrectCrash = 0;
+    private int optimalWaitingTime = 6;
+    private ArrayList<Integer> waitingTime;
 
     FaultDetector(String id, long pingTime, String serverId, NetworkSimulator networkSimulator, Distribution d){
         this.state = State.HEALTHY;
@@ -40,6 +39,7 @@ public class FaultDetector {
         this.lastPing = -1;
         this.networkSimulator = networkSimulator;
         this.distribution = d;
+        this.waitingTime = new ArrayList<>();
     }
 
     public void decide(int time){
@@ -60,19 +60,22 @@ public class FaultDetector {
 
         if(messages != null) {
             for(Message m : messages){
-                processMessage(m, time);
+                processMessageHealthy(m, time);
             }
         }
 
-        if(--currentInvulnerabilityTime <=0 && waitingForPing && hasCrashed(time)){
+        if(hasCrashed(time)){
             broadcastFDs(new Message(id, Message.Type.serverCrashed));
 
+            numCrashes++;
             waitingForPing = false;
             timeCrashed = 0;
             currentInvulnerabilityTime = invulnerabilityTime;
             state = State.CRASHED;
 
-            networkSimulator.writeBuffer(serverId, new Message(id, Message.Type.serverCrashed));
+            networkSimulator.writeBuffer(serverId, new Message(id, Message.Type.serverStateRequest));
+
+            waitingTime.add(time - lastPing);
         }
 
         if(isTimeToPing(time)){
@@ -87,21 +90,13 @@ public class FaultDetector {
 
         if(messages != null){
             for(Message m : messages){
-                switch (m.getType()){
-                    case serverCrashed:
-                        correctCrash++;
-                        break;
-                    case serverNotCrashed:
-                        incorrectCrash++;
-                        break;
-                }
+                processMessageCrashed(m);
             }
         }
 
         if(++timeCrashed == timeToReboot){
-            networkSimulator.writeBuffer(serverId, new Message(id, Message.Type.revived));
-            faultDetectors.add(id);
-            state = State.HEALTHY;
+            //requests updated list of FDs
+            broadcastFDs(new Message(id, Message.Type.reviveRequest));
         }
     }
 
@@ -110,16 +105,16 @@ public class FaultDetector {
     }
 
     private boolean hasCrashed(int time){
+        if(--currentInvulnerabilityTime > 0 || !waitingForPing){
+            return false;
+        }
         int waitedTime = time - lastPing;
         double p = distribution.getProbability(waitedTime);
 
-        if(p < uncertaintyPercentage){
-            return true;
-        }
-        return false;
+        return p < uncertaintyPercentage;
     }
 
-    private void processMessage(Message m, int time){
+    private void processMessageHealthy(Message m, int time){
         switch (m.getType()){
             case pingResponse:
                 waitingForPing = false;
@@ -129,6 +124,33 @@ public class FaultDetector {
                 if(!id.equals(m.getId())){
                     faultDetectors.remove(m.getId());
                 }
+                break;
+            case reviveRequest:
+                if(!id.equals(m.getId())){
+                    faultDetectors.add(m.getId());
+                    networkSimulator.writeBuffer(m.getId(), new Message(id, Message.Type.revived, faultDetectors));
+                }
+                break;
+        }
+    }
+
+    private void processMessageCrashed(Message m){
+        switch (m.getType()){
+            case serverStateResponse:
+                System.out.println("received server response: " + m.getState());
+                if(m.getState().equals(State.CRASHED)){
+                    correctCrash++;
+                }else{
+                    System.out.println("WROOOOOOOOOOOOOOONG");
+                }
+                break;
+            case revived:
+                //received updated list of FDs, ready to revive
+                if(state.equals(State.HEALTHY)) break;
+
+                faultDetectors = new ArrayList<>(m.getList());
+                networkSimulator.writeBuffer(serverId, new Message(id, Message.Type.revived));
+                state = State.HEALTHY;
                 break;
         }
     }
@@ -150,10 +172,21 @@ public class FaultDetector {
     public String getStatistics(int time){
         StringBuilder res = new StringBuilder(id + "\n");
 
-        String s = String.format("Crash percentage: %.2f", (correctCrash + incorrectCrash)/time * 100);
-        res.append(s).append("%\n");
-        res.append("Number of crashes: ").append(correctCrash + incorrectCrash).append("\n");
-        res.append("Crash detection success: ").append((correctCrash == 0 ? 100 : (correctCrash / (incorrectCrash + correctCrash) *100))).append("\n");
+        res.append("Crash percentage: ").append(String.format("%.2f", numCrashes/time * 100)).append("%\n");
+        res.append("Number of crashes: ").append(String.format("%.0f", numCrashes)).append("\n");
+        res.append("Crash detection success: ").append(String.format("%.2f", (numCrashes == 0 ? 100 : (correctCrash / numCrashes *100)))).append("%\n");
+
+        double error = 0.;
+
+        for(int t : waitingTime){
+            error += (t-optimalWaitingTime)*(t-optimalWaitingTime);
+        }
+
+        if(waitingTime.size() != 0){
+            error = error / waitingTime.size();
+        }
+
+        res.append("Quadratic error of optimization: ").append(String.format("%.2f", error)).append("\n");
 
         return res.toString();
     }

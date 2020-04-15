@@ -1,8 +1,15 @@
-import java.awt.*;
+package MultiAgentFaultDetector;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+
+enum State {
+    HEALTHY,
+    CRASHED,
+    INFECTED
+}
 
 public class Environment {
     private int currentTime;
@@ -23,7 +30,7 @@ public class Environment {
         }
 
         for(Pair p : listPair){
-            p.getFaultDetector().setFaultDetectors(l);
+            p.getFaultDetector().setFaultDetectors(new ArrayList<>(l));
         }
 
     }

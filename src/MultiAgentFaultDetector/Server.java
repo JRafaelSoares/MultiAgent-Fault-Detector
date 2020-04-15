@@ -1,13 +1,10 @@
+package MultiAgentFaultDetector;
+
 import java.util.ArrayList;
 import java.util.Random;
 
 
 public class Server {
-    enum State {
-        HEALTHY,
-        CRASHED,
-        INFECTED
-    }
     private String id;
     private State state;
     private String faultDetectorId;
@@ -45,9 +42,11 @@ public class Server {
     public void decide() {
         switch (state){
             case HEALTHY:
+                System.out.println(id + " healthy");
                 decideHealthy();
                 break;
             case CRASHED:
+                System.out.println(id + " crashed");
                 decideCrashed();
                 break;
         }
@@ -59,8 +58,9 @@ public class Server {
                 Random random = new Random();
                 whenToAnswerPing = random.nextInt((maxTimeAnswer - minTimeAnswer) + 1) + minTimeAnswer;
                 break;
-            case serverCrashed:
-                networkSimulator.writeBuffer(faultDetectorId, new Message(id, state == State.HEALTHY ? Message.Type.serverNotCrashed : Message.Type.serverCrashed));
+            case serverStateRequest:
+                System.out.println("received statistics request");
+                networkSimulator.writeBuffer(faultDetectorId, new Message(id, Message.Type.serverStateResponse, state));
                 break;
         }
     }
@@ -88,9 +88,15 @@ public class Server {
 
         if(messages != null){
             for(Message m : messages){
-                if(m.getType().equals(Message.Type.revived)){
-                    state = State.HEALTHY;
-                    currentInvulnerabilityTime = invulnerabilityTime;
+                switch (m.getType()){
+                    case revived:
+                        state = State.HEALTHY;
+                        currentInvulnerabilityTime = invulnerabilityTime;
+                        break;
+                    case serverStateRequest:
+                        System.out.println("received statistics request");
+                        networkSimulator.writeBuffer(faultDetectorId, new Message(id, Message.Type.serverStateResponse, state));
+                        break;
                 }
             }
         }

@@ -1,3 +1,5 @@
+package MultiAgentFaultDetector;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 

@@ -1,3 +1,5 @@
+package MultiAgentFaultDetector;
+
 public class Pair {
     private FaultDetector faultDetector;
     private Server server;

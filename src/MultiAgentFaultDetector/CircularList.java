@@ -1,3 +1,5 @@
+package MultiAgentFaultDetector;
+
 class Node {
 
     FaultDetector faultDetector;
