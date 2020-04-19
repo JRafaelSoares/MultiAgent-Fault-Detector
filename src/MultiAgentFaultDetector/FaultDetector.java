@@ -1,5 +1,7 @@
 package MultiAgentFaultDetector;
 
+import javafx.scene.Scene;
+
 import java.util.ArrayList;
 
 public class FaultDetector {
@@ -27,8 +29,8 @@ public class FaultDetector {
     private Distribution distribution;
 
     //statistics
-    private double numCrashes = 0;
-    private double correctCrash = 0;
+    private int numCrashes = 0;
+    private int correctCrashes = 0;
     private int optimalWaitingTime = 6;
     private ArrayList<Integer> waitingTime;
 
@@ -41,6 +43,15 @@ public class FaultDetector {
         this.lastPing = -1;
         this.networkSimulator = networkSimulator;
         this.distribution = d;
+        this.waitingTime = new ArrayList<>();
+    }
+
+    public void restart(){
+        this.state = State.HEALTHY;
+        this.id = id;
+        this.serverId = serverId;
+        this.currentInvulnerabilityTime = invulnerabilityTime;
+        this.lastPing = -1;
         this.waitingTime = new ArrayList<>();
     }
 
@@ -140,7 +151,7 @@ public class FaultDetector {
         switch (m.getType()){
             case serverStateResponse:
                 if(m.getState().equals(State.CRASHED)){
-                    correctCrash++;
+                    correctCrashes++;
                 }
                 break;
             case revived:
@@ -164,29 +175,25 @@ public class FaultDetector {
         return this.id;
     }
 
+    public State getState() {
+        return state;
+    }
+
     public void setFaultDetectors(ArrayList<String> l){
         this.faultDetectors = l;
     }
 
-    public String getStatistics(int time){
-        StringBuilder res = new StringBuilder(id + "\n");
-
-        res.append("Crash percentage: ").append(String.format("%.2f", numCrashes/time * 100)).append("%\n");
-        res.append("Number of crashes: ").append(String.format("%.0f", numCrashes)).append("\n");
-        res.append("Crash detection success: ").append(String.format("%.2f", (numCrashes == 0 ? 100 : (correctCrash / numCrashes *100)))).append("%\n");
-
+    public FaultDetectorStatistics getStatistics(int time){
         double error = 0.;
 
         for(int t : waitingTime){
-            error += (t-optimalWaitingTime)*(t-optimalWaitingTime);
+            error += (t - optimalWaitingTime)*(t - optimalWaitingTime);
         }
 
         if(waitingTime.size() != 0){
             error = error / waitingTime.size();
         }
 
-        res.append("Quadratic error of optimization: ").append(String.format("%.2f", error)).append("\n");
-
-        return res.toString();
+        return new FaultDetectorStatistics(id, numCrashes, correctCrashes, (double)numCrashes/time * 100, (numCrashes == 0 ? 100 : ((double)correctCrashes / (double)numCrashes *100)), error);
     }
 }

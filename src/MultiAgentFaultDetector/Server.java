@@ -42,6 +42,12 @@ public class Server {
 
     }
 
+    public void restart(){
+        this.state = State.HEALTHY;
+        this.currentInvulnerabilityTime = invulnerabilityTime;
+        this.whenToAnswerPing = -1;
+    }
+
     public void decide() {
         switch (state){
             case HEALTHY:
@@ -114,5 +120,7 @@ public class Server {
         return this.id;
     }
 
-
+    public State getState(){
+        return state;
+    }
 }

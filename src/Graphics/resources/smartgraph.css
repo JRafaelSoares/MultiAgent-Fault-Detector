@@ -1,0 +1,117 @@
+#application {
+    -fx-background-color: #F4FFFB;
+}
+
+#application-n {
+    -fx-background-image: url('icons/test');
+    -fx-background-size: cover;
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+}
+
+.vertex {
+    -fx-stroke-width: 3;
+    -fx-stroke: #61B5F1;
+    -fx-stroke-type: inside; /* you should keep this for vertex.radius to hold */
+    -fx-fill: #B1DFF7;
+}
+
+.vertex-label {
+    -fx-font: bold 8pt "sans-serif";
+}
+
+.edge {
+    -fx-stroke-width: 2;
+    -fx-stroke: #FF6D66;
+    -fx-stroke-dash-array: 2 5 2 5; /* remove for clean edges */
+    -fx-fill: transparent; /*important for curved edges. do not remove */
+    -fx-stroke-line-cap: round;
+    -fx-opacity: 0.8;
+}
+
+.edge-label {
+    -fx-font: normal 5pt "sans-serif";
+}
+
+.arrow {
+    -fx-stroke-width: 2;
+    -fx-stroke: #FF6D66;
+    -fx-opacity: 0.8;
+}
+
+/* Custom vertex. You should revert any unwanted styling in the default element,
+   style, since custom styles will be appended to the default style */
+.myVertex {
+    -fx-stroke-width: 5;
+    -fx-stroke: green;
+    -fx-stroke-type: inside; /* you should keep this if using arrows */
+    -fx-fill: yellowgreen;
+}
+
+.control-panel-button {
+    -fx-background-radius: 5em;
+    -fx-min-height: 40px;
+    -fx-min-width: 40px;
+    -fx-max-height: 40px;
+    -fx-max-width: 40px;
+
+    -fx-background-size: 100% 100%;
+    -fx-background-repeat: no-repeat;
+    -fx-background-position: center;
+}
+
+.play-button {
+     -fx-background-image: url('icons/play.png');
+}
+
+.pause-button {
+    -fx-background-image: url('icons/pause.png');
+}
+
+.restart-button {
+    -fx-background-image: url('icons/restart.png');
+}
+
+.step-button {
+    -fx-background-image: url('icons/step.png');
+}
+
+#timer {
+    -fx-font-size: 40px;
+    -fx-fill: forestgreen;
+}
+
+#step-size-input {
+    -fx-min-height: 40px;
+    -fx-min-width: 100px;
+    -fx-max-height: 40px;
+    -fx-max-width: 100px;
+}
+
+.modal-dialog {
+  -fx-padding: 20;
+  -fx-spacing: 10;
+  -fx-alignment: center;
+  -fx-font-size: 20;
+  -fx-background-color: linear-gradient(to bottom, derive(-fx-glass-color, 20%), -fx-glass-color);
+  -fx-border-color: derive(-fx-glass-color, -20%);
+  -fx-border-width: 5;
+  -fx-background-insets: 12;
+  -fx-border-insets: 10;
+  -fx-border-radius: 6;
+  -fx-background-radius: 6;
+}
+
+.modal-dialog:pressed {
+  -fx-cursor: move;
+}
+
+.modal-dialog .button:pressed {
+  -fx-cursor: default;
+}
+
+.statistics-dialog-title {
+    -fx-alignment: center;
+    -fx-font-size: 30px;
+    -fx-font-weight: bold;
+}
