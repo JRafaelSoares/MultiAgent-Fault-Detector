@@ -1,4 +1,4 @@
-package MultiAgentFaultDetector;
+package AASMAProject.MultiAgentFaultDetector;
 
 import java.util.ArrayList;
 import java.util.HashMap;

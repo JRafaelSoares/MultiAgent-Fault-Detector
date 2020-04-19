@@ -1,6 +1,4 @@
-package MultiAgentFaultDetector;
-
-import javafx.scene.Scene;
+package AASMAProject.MultiAgentFaultDetector;
 
 import java.util.ArrayList;
 

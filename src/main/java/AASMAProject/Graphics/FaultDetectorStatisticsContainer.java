@@ -1,7 +1,6 @@
-package Graphics;
+package AASMAProject.Graphics;
 
-import MultiAgentFaultDetector.FaultDetectorStatistics;
-import javafx.scene.control.TextField;
+import AASMAProject.MultiAgentFaultDetector.FaultDetectorStatistics;
 import javafx.scene.layout.GridPane;
 import javafx.scene.text.Text;
 

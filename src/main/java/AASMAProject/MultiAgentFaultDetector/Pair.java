@@ -1,4 +1,4 @@
-package MultiAgentFaultDetector;
+package AASMAProject.MultiAgentFaultDetector;
 
 public class Pair {
     private FaultDetector faultDetector;

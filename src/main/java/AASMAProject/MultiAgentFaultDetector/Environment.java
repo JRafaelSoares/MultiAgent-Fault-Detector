@@ -1,6 +1,6 @@
-package MultiAgentFaultDetector;
+package AASMAProject.MultiAgentFaultDetector;
 
-import Graphics.GraphicsHandler;
+import AASMAProject.Graphics.GraphicsHandler;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -69,22 +69,7 @@ public class Environment {
         return new AbstractMap.SimpleEntry<>(pair.getFaultDetector().getState(), pair.getServer().getState());
     }
 
-    public static void main(String args[]) throws IOException {
-        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-
+    public static void main(String args[]) {
         GraphicsHandler.launch(GraphicsHandler.class);
-/*
-        String[] input = br.readLine().split(",");
-        int numPairs = Integer.parseInt(input[0]);
-        int step = Integer.parseInt(input[1]);
-
-        Environment environment = new Environment(numPairs);
-
-        while(!(br.readLine()).startsWith("q")) {
-            for(int i=0; i<step; i++){
-                environment.decision();
-            }
-            System.out.println("\nStatistics: \n" + environment.getStatistics());
-        }*/
     }
 }

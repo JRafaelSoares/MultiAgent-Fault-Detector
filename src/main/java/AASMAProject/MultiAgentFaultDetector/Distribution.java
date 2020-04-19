@@ -1,4 +1,4 @@
-package MultiAgentFaultDetector;
+package AASMAProject.MultiAgentFaultDetector;
 
 import org.apache.commons.math3.distribution.NormalDistribution;
 

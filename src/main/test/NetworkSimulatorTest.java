@@ -1,5 +1,5 @@
 import org.junit.jupiter.api.Test;
-import MultiAgentFaultDetector.*;
+import AASMAProject.MultiAgentFaultDetector.*;
 
 import java.util.ArrayList;
 

@@ -1,7 +1,6 @@
-package Graphics;
+package AASMAProject.Graphics;
 
-import MultiAgentFaultDetector.*;
-import com.brunomnsilva.smartgraph.containers.SmartGraphDemoContainer;
+import AASMAProject.MultiAgentFaultDetector.*;
 import com.brunomnsilva.smartgraph.graph.Graph;
 import com.brunomnsilva.smartgraph.graph.GraphEdgeList;
 import com.brunomnsilva.smartgraph.graphview.SmartCircularSortedPlacementStrategy;
@@ -12,14 +11,12 @@ import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.effect.BoxBlur;
 import javafx.scene.effect.GaussianBlur;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -30,7 +27,6 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
-import javafx.scene.text.TextAlignment;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -143,7 +139,7 @@ public class GraphicsHandler extends Application {
         Scene scene = new Scene(graphContainer, 1024, 768);
         System.out.println(System.getProperty("user.dir"));
         scene.getStylesheets().add(
-            getClass().getResource("resources/smartgraph.css").toExternalForm()
+            getClass().getResource("../../smartgraph.css").toExternalForm()
         );
 
         scene.addEventHandler(KeyEvent.KEY_PRESSED, (key) -> {

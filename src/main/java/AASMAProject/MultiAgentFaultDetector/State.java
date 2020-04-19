@@ -1,4 +1,4 @@
-package MultiAgentFaultDetector;
+package AASMAProject.MultiAgentFaultDetector;
 
 public enum State {
     HEALTHY,
