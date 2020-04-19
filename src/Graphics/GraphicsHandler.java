@@ -134,6 +134,7 @@ public class GraphicsHandler extends Application {
         graphContainer.setStepButtonAction(e -> {
             int step1 = Integer.parseInt(graphContainer.getStepSizeInput().getText());
 
+            timeline.stop();
             timeline.setCycleCount(step1);
             timeline.play();
         });
@@ -225,11 +226,6 @@ public class GraphicsHandler extends Application {
                 stage.getScene().getRoot().setEffect(new GaussianBlur());
                 statisticsDialog.show();
             }
-
-            //System.out.println("Vertex contains element: " + graphVertex.getUnderlyingVertex().element());
-
-            //style differently with other css class:
-            //graphVertex.setStyleClass("myVertex");
         });
 
         graphView.setEdgeDoubleClickAction(graphEdge -> {
