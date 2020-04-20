@@ -40,7 +40,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class GraphicsHandler extends Application {
 
     private Timeline timeline;
-    private Statistics statistics;
+    private FaultDetectorStatisticsContainer statisticsDialog;
 
     @Override
     public void start(Stage ignored) {
@@ -138,9 +138,8 @@ public class GraphicsHandler extends Application {
         graphContainer.setId("application");
 
         Scene scene = new Scene(graphContainer, 1024, 768);
-        System.out.println(System.getProperty("user.dir"));
         scene.getStylesheets().add(
-            getClass().getResource("../../smartgraph.css").toExternalForm()
+            getClass().getResource("../../stylesheet.css").toExternalForm()
         );
 
         scene.addEventHandler(KeyEvent.KEY_PRESSED, (key) -> {
@@ -156,6 +155,8 @@ public class GraphicsHandler extends Application {
         stage.setScene(scene);
         stage.show();
 
+        statisticsDialog = new FaultDetectorStatisticsContainer(stage);
+
         /*
         IMPORTANT: Must call init() after scene is displayed so we can have width and height values
         to initially place the vertices according to the placement strategy
@@ -169,58 +170,7 @@ public class GraphicsHandler extends Application {
             String id = graphVertex.getUnderlyingVertex().element();
 
             if(id.startsWith("FD")){
-                Stage statisticsDialog = new Stage(StageStyle.TRANSPARENT);
-                statisticsDialog.initModality(Modality.WINDOW_MODAL);
-                statisticsDialog.initOwner(stage);
-
-                BorderPane statisticsDialogPane = new BorderPane();
-                statisticsDialogPane.setPadding(new Insets(20, 20, 20, 20));
-
-                Button closeDialogButton = new Button("X");
-                closeDialogButton.getStyleClass().add("control-panel-button");
-                closeDialogButton.getStyleClass().add("close-statistics-button");
-
-                closeDialogButton.setOnAction(e -> {
-                    stage.getScene().getRoot().setEffect(null);
-                    statisticsDialog.close();
-                });
-
-                statisticsDialogPane.setRight(closeDialogButton);
-
-                Text idText = new Text(id);
-                idText.getStyleClass().add("statistics-dialog-title");
-                BorderPane.setAlignment(idText, Pos.CENTER);
-                idText.setFont(Font.font("Times", FontWeight.BOLD, 30));
-                BorderPane.setMargin(idText, new Insets(0,12,12,12)); // optional
-
-                statisticsDialogPane.setTop(idText);
-
-                statisticsDialogPane.setCenter(new FaultDetectorStatisticsContainer(environment.getFaultDetectorStatistics(id)));
-
-                statisticsDialogPane.getStyleClass().add("modal-dialog");
-
-                Scene statisticsScene = new Scene(statisticsDialogPane, Color.TRANSPARENT);
-                statisticsDialog.setScene(statisticsScene);
-
-                // allow the dialog to be dragged around.
-                final Node root = statisticsDialog.getScene().getRoot();
-                final Delta dragDelta = new Delta();
-                root.setOnMousePressed(new EventHandler<MouseEvent>() {
-                    @Override public void handle(MouseEvent mouseEvent) {
-                        // record a delta distance for the drag and drop operation.
-                        dragDelta.x = statisticsDialog.getX() - mouseEvent.getScreenX();
-                        dragDelta.y = statisticsDialog.getY() - mouseEvent.getScreenY();
-                    }
-                });
-                root.setOnMouseDragged(new EventHandler<MouseEvent>() {
-                    @Override public void handle(MouseEvent mouseEvent) {
-                        statisticsDialog.setX(mouseEvent.getScreenX() + dragDelta.x);
-                        statisticsDialog.setY(mouseEvent.getScreenY() + dragDelta.y);
-                    }
-                });
-
-                stage.getScene().getRoot().setEffect(new GaussianBlur());
-                statisticsDialog.show();
+                statisticsDialog.setStatisticsAndShow(environment.getFaultDetectorStatistics(id));
             }
         });
 
@@ -229,10 +179,6 @@ public class GraphicsHandler extends Application {
             //dynamically change the style when clicked
             //graphEdge.setStyle("-fx-stroke: black; -fx-stroke-width: 2;");
         });
-    }
-
-    private void displaySetupDialog(){
-
     }
 
     /**
@@ -300,6 +246,4 @@ public class GraphicsHandler extends Application {
             graphContainer.setTimer(Integer.toString(environment.getCurrentTime()));
         }
     }
-
-    class Delta { double x, y; }
 }
