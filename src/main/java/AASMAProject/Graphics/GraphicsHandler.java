@@ -3,7 +3,6 @@ package AASMAProject.Graphics;
 import AASMAProject.MultiAgentFaultDetector.*;
 import com.brunomnsilva.smartgraph.graph.Graph;
 import com.brunomnsilva.smartgraph.graph.GraphEdgeList;
-import com.brunomnsilva.smartgraph.graphview.SmartCircularSortedPlacementStrategy;
 import com.brunomnsilva.smartgraph.graphview.SmartGraphPanel;
 import com.brunomnsilva.smartgraph.graphview.SmartPlacementStrategy;
 import javafx.animation.Animation;
@@ -11,23 +10,13 @@ import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.event.EventHandler;
 import javafx.geometry.Insets;
-import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.effect.GaussianBlur;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
-import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
-import javafx.scene.text.Text;
-import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.util.Duration;
@@ -41,6 +30,10 @@ public class GraphicsHandler extends Application {
 
     private Timeline timeline;
     private FaultDetectorStatisticsContainer statisticsDialog;
+
+    private static final String HEALTHY_STYLE = "-fx-stroke: green;";
+    private static final String CRASHED_STYLE = "-fx-stroke: red;";
+    private static final String INFECTED_STYLE = "-fx-stroke: purple;";
 
     @Override
     public void start(Stage ignored) {
@@ -105,10 +98,10 @@ public class GraphicsHandler extends Application {
 
         Graph<String, String> g = buildGraph(numPairs.get());
 
-        SmartPlacementStrategy strategy = new SmartCircularSortedPlacementStrategy();
+        SmartPlacementStrategy strategy = new MultiAgentFaultDetectorPlacementStrategy();
         SmartGraphPanel<String, String> graphView = new SmartGraphPanel<>(g, strategy);
 
-        graphView.setAutomaticLayout(true);
+        //graphView.setAutomaticLayout(true);
 
         GraphContainerWithControlPanel graphContainer = new GraphContainerWithControlPanel(graphView);
 
@@ -221,25 +214,25 @@ public class GraphicsHandler extends Application {
 
             switch (statePair.getKey()){
                 case HEALTHY:
-                    graphView.getStylableVertex("FD" + j).setStyle("-fx-stroke: green;");
+                    graphView.getStylableVertex("FD" + j).setStyle(HEALTHY_STYLE);
                     break;
                 case CRASHED:
-                    graphView.getStylableVertex("FD" + j).setStyle("-fx-stroke: red;");
+                    graphView.getStylableVertex("FD" + j).setStyle(CRASHED_STYLE);
                     break;
                 case INFECTED:
-                    graphView.getStylableVertex("FD" + j).setStyle("-fx-stroke: purple;");
+                    graphView.getStylableVertex("FD" + j).setStyle(INFECTED_STYLE);
                     break;
             }
 
             switch (statePair.getValue()){
                 case HEALTHY:
-                    graphView.getStylableVertex("S" + j).setStyle("-fx-stroke: green;");
+                    graphView.getStylableVertex("S" + j).setStyle(HEALTHY_STYLE);
                     break;
                 case CRASHED:
-                    graphView.getStylableVertex("S" + j).setStyle("-fx-stroke: red;");
+                    graphView.getStylableVertex("S" + j).setStyle(CRASHED_STYLE);
                     break;
                 case INFECTED:
-                    graphView.getStylableVertex("S" + j).setStyle("-fx-stroke: purple;");
+                    graphView.getStylableVertex("S" + j).setStyle(INFECTED_STYLE);
                     break;
             }
 

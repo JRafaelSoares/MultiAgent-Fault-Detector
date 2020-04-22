@@ -2,21 +2,21 @@ package AASMAProject.Graphics;
 
 import AASMAProject.MultiAgentFaultDetector.FaultDetectorStatistics;
 import javafx.geometry.Insets;
+import javafx.geometry.Point2D;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.effect.GaussianBlur;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
+
+import java.util.concurrent.atomic.AtomicReference;
 
 
 public class FaultDetectorStatisticsContainer extends Stage {
@@ -115,15 +115,14 @@ public class FaultDetectorStatisticsContainer extends Stage {
 
         // allow the dialog to be dragged around.
         final Node root = statisticsScene.getRoot();
-        final Delta dragDelta = new Delta();
+        AtomicReference<Point2D> dragDelta = new AtomicReference<>(new Point2D(0, 0));
         root.setOnMousePressed(mouseEvent -> {
             // record a delta distance for the drag and drop operation.
-            dragDelta.x = this.getX() - mouseEvent.getScreenX();
-            dragDelta.y = this.getY() - mouseEvent.getScreenY();
+            dragDelta.set(new Point2D(this.getX() - mouseEvent.getScreenX(), this.getY() - mouseEvent.getScreenY()));
         });
         root.setOnMouseDragged(mouseEvent -> {
-            this.setX(mouseEvent.getScreenX() + dragDelta.x);
-            this.setY(mouseEvent.getScreenY() + dragDelta.y);
+            this.setX(mouseEvent.getScreenX() + dragDelta.get().getX());
+            this.setY(mouseEvent.getScreenY() + dragDelta.get().getY());
         });
     }
 
@@ -138,6 +137,4 @@ public class FaultDetectorStatisticsContainer extends Stage {
         initOwner.getScene().getRoot().setEffect(new GaussianBlur());
         this.show();
     }
-
-    class Delta { double x, y; }
 }
