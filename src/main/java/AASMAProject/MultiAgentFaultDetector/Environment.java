@@ -18,18 +18,22 @@ public class Environment {
         listPair = new HashMap<>();
         currentTime = 0;
         NetworkSimulator networkSimulator = new NetworkSimulator();
-        ArrayList<String> l = new ArrayList<>();
+        ArrayList<String> faultDetectorID = new ArrayList<>();
+        ArrayList<String> serverID = new ArrayList<>();
 
         for(int i=0; i<num; i++){
-            Server server = new Server("S" + i, "FD" + i, 0.01, 0.5, 2, 5, networkSimulator);
+            Server server = new Server("S" + i, "FD" + i, 0.01, 2, 5, 3, networkSimulator);
             FaultDetector faultDetector = new FaultDetector("FD" + i, 10, "S" + i, networkSimulator, new Distribution(Distribution.Type.NORMAL));
 
             listPair.put(faultDetector.getId(), new Pair(faultDetector, server));
-            l.add("FD" + i);
+            faultDetectorID.add("FD" + i);
+            serverID.add("S" + i);
         }
 
         for(Pair p : listPair.values()){
-            p.getFaultDetector().setFaultDetectors(new ArrayList<>(l));
+            p.getFaultDetector().setFaultDetectors(new ArrayList<>(faultDetectorID));
+            p.getFaultDetector().setServers(new ArrayList<>(serverID));
+            p.getServer().setFaultDetectorID(new ArrayList<>(faultDetectorID));
         }
     }
 

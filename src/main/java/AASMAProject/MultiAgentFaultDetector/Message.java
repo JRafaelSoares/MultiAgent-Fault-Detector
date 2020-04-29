@@ -3,10 +3,14 @@ package AASMAProject.MultiAgentFaultDetector;
 import java.util.ArrayList;
 
 public class Message {
+    public String getServerID() {
+        return serverID;
+    }
+
     public enum Type{
         pingRequest,
         pingResponse,
-        serverCrashed,
+        serverInfected,
         serverNotCrashed,
         revived,
         reviveRequest,
@@ -14,13 +18,22 @@ public class Message {
         serverStateRequest,
         serverStateResponse
     }
+
     private String id;
+    private String serverID;
     private Type type;
     private ArrayList<String> list;
     private State state;
 
     public Message(String id, Type type){
         this.id = id;
+        this.type = type;
+    }
+
+    //PingResponseMessage
+    Message(String faultDetectorID, String serverID, Type type){
+        this.id = faultDetectorID;
+        this.serverID = serverID;
         this.type = type;
     }
 
