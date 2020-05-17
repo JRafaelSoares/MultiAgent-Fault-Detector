@@ -3,66 +3,50 @@ package AASMAProject.MultiAgentFaultDetector;
 import java.util.ArrayList;
 
 public class Message {
-    public String getServerID() {
-        return serverID;
-    }
 
     public enum Type{
         pingRequest,
         pingResponse,
         serverInfected,
-        serverNotCrashed,
-        revived,
+        reviveResponse,
         reviveRequest,
-        //for estatistics
-        serverStateRequest,
-        serverStateResponse
     }
 
-    private String id;
-    private String serverID;
+    private String source;
+    private String destination;
     private Type type;
-    private ArrayList<String> list;
-    private State state;
+    private byte[] content;
+    private boolean contagious;
 
-    public Message(String id, Type type){
-        this.id = id;
+    Message(String source, String destination, Type type, boolean contagious){
+        this.source = source;
+        this.destination = destination;
         this.type = type;
+        this.contagious = contagious;
     }
 
-    //PingResponseMessage
-    Message(String faultDetectorID, String serverID, Type type){
-        this.id = faultDetectorID;
-        this.serverID = serverID;
-        this.type = type;
+    Message(String source, String destination, Type type, boolean contagious, byte[] content){
+        this(source, destination, type, contagious);
+        this.content = content;
     }
 
-    Message(String id, Type type, ArrayList<String> list){
-        this.id = id;
-        this.type = type;
-        this.list = list;
+    public boolean isContagious() {
+        return contagious;
     }
 
-    Message(String id, Type type, State state){
-        this.id = id;
-        this.type = type;
-        this.state = state;
+    public String getSource(){
+        return source;
     }
 
-
-    public String getId(){
-        return id;
+    public String getDestination() {
+        return destination;
     }
 
     public Type getType(){
         return type;
     }
 
-    public ArrayList<String> getList(){
-        return this.list;
-    }
-
-    public State getState(){
-        return this.state;
+    public byte[] getContent(){
+        return this.content;
     }
 }

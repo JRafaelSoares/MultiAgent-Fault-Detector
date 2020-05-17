@@ -2,15 +2,14 @@ package AASMAProject.MultiAgentFaultDetector;
 
 import org.apache.commons.math3.distribution.NormalDistribution;
 
-import java.util.ArrayList;
-
 public class Distribution {
     enum Type{
         NORMAL
     }
-    private ArrayList<Integer> data = new ArrayList<>();
+
+    private int numDataPoints = 0;
     private Double mean = 0.;
-    private Double deviation = 0.;
+    private Double varianceSum = 0.;
     private Type type;
 
     Distribution(Type type){
@@ -18,32 +17,35 @@ public class Distribution {
     }
 
     public void addData(int x){
-        data.add(x);
-        mean = (mean*(data.size()-1) + x)/data.size();
+        numDataPoints++;
+
+        double prevMean = mean;
+        mean = mean + (x - mean)/numDataPoints;
+        varianceSum = varianceSum + (x - mean) * (x - prevMean);
     }
 
     public double getMean(){
         return mean;
     }
 
-    public double getDeviation() {
-        double temp = 0;
+    public double getVariance() {
+        /*double temp = 0;
         for(double a :data)
             temp += (a-mean)*(a-mean);
 
-        deviation = temp/(data.size()-1);
+        variance = temp/(data.size()-1);*/
 
-        if(deviation == 0.) deviation = 0.0000000000000001;
+        if(varianceSum == 0.) varianceSum = 0.0000000000000001;
 
-        return deviation;
+        return varianceSum / numDataPoints;
     }
 
     public double getProbability(int x){
         switch (type){
             case NORMAL:
-                return 1 - (new NormalDistribution(getMean(), getDeviation()).cumulativeProbability(x));
+                return 1 - (new NormalDistribution(getMean(), Math.sqrt(getVariance())).cumulativeProbability(x));
             default:
-                return 1 - (new NormalDistribution(getMean(), getDeviation()).cumulativeProbability(x));
+                return 1 - (new NormalDistribution(getMean(), Math.sqrt(getVariance())).cumulativeProbability(x));
 
         }
     }

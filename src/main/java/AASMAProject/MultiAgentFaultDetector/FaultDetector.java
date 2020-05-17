@@ -1,60 +1,36 @@
 package AASMAProject.MultiAgentFaultDetector;
 
+
+import org.apache.commons.lang3.SerializationUtils;
+
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Random;
 
-public class FaultDetector {
+public abstract class FaultDetector {
 
-    private boolean debug = false;
+    private boolean debug = true;
 
     private String id;
     private State state;
-    private String serverId;
-    private  NetworkSimulator networkSimulator;
-    private ArrayList<String> faultDetectors;
-    private ArrayList<String> servers;
 
+    private int myIndex;
 
-    private int invulnerabilityTime = 100;
-    private int currentInvulnerabilityTime;
+    private NetworkSimulator networkSimulator;
+
+    private ArrayList<PairInfo> pairInfos;
+
+    public static int invulnerabilityTime = 100;
+    public static double probInsideInfection = 0.2;
 
     //crashed variables
     private int timeToReboot = 10;
-    private int timeCrashed;
-    private double uncertaintyPercentage = 0.1;
+    private int timeInfected;
 
-    //ping variables
-    private long frequencyPing;
-    private int lastPing;
-    private Distribution distribution;
-
-    private HashMap<String, Ping> pingInformation = new HashMap<>();
-
-    //statistics
-    private int numCrashes = 0;
-    private int correctCrashes = 0;
-    private int optimalWaitingTime = 6;
-    private ArrayList<Integer> waitingTime;
-
-    FaultDetector(String id, long pingTime, String serverId, NetworkSimulator networkSimulator, Distribution d){
+    public FaultDetector(String id, NetworkSimulator networkSimulator){
         this.state = State.HEALTHY;
         this.id = id;
-        this.serverId = serverId;
-        this.currentInvulnerabilityTime = invulnerabilityTime;
-        this.frequencyPing = pingTime;
-        this.lastPing = -1;
         this.networkSimulator = networkSimulator;
-        this.distribution = d;
-        this.waitingTime = new ArrayList<>();
-    }
-
-    public void restart(){
-        this.state = State.HEALTHY;
-        this.id = id;
-        this.serverId = serverId;
-        this.currentInvulnerabilityTime = invulnerabilityTime;
-        this.lastPing = -1;
-        this.waitingTime = new ArrayList<>();
     }
 
     public void decide(int time){
@@ -64,144 +40,155 @@ public class FaultDetector {
                 decideHealthy(time);
                 break;
             case INFECTED:
-                if(debug) System.out.println(id + " crashed");
-                decideInfected();
+                if(debug) System.out.println(id + " infected");
+                decideInfected(time);
                 break;
         }
     }
 
-    /***********************/
-    /** HEALTHY BEHAVIOUR **/
-    /***********************/
 
-    private void decideHealthy(int time){
+     /* ------------------------- *\
+    |                               |
+    |       Healthy Behaviour       |
+    |                               |
+     \* ------------------------- */
+
+    public void decideHealthy(int time){
         ArrayList<Message> messages = networkSimulator.readBuffer(id);
         //Read messages
         if(messages != null) {
             for(Message m : messages){
-                processMessageHealthy(m, time);
+                processMessageHealthy(time, m);
             }
         }
         //If we detect a server seems to be infected (doesnt respond on time)
 
-        for(String server : servers){
-            Ping ping = pingInformation.get(server);
-
-            if(isInfected(ping, time)){
-                String serverID = server.split("S")[1];
-                broadcastFDs(new Message(serverID, Message.Type.serverInfected));
-
-                //networkSimulator.writeBuffer(serverId, new Message(id, Message.Type.serverStateRequest));
-
-                waitingTime.add(time - ping.getLastPing());
+        for(PairInfo info : pairInfos){
+            if(info.decrementAndGet() == 0 && isInfected(time, info.getServerID())){
+                broadcast(pairInfos, "faultDetectors", Message.Type.serverInfected, info.getServerID().getBytes());
             }
 
-            if(ping.isTimeToPing(time)){
-
-                ping.setWaitingForPing(true);
-                ping.setLastPing(time);
-                networkSimulator.writeBuffer(server, new Message(id, server, Message.Type.pingRequest));
-            }
+            decidePing(time, info.getServerID());
         }
     }
 
-    private void processMessageHealthy(Message m, int time){
+    public void processMessageHealthy(int time, Message m){
+        if(m.isContagious() && pairInfos.get(myIndex).getCurrentInvulnerabilityTime() <= 0 && new Random().nextDouble() <= probInsideInfection){
+            state = State.INFECTED;
+        }
+
         switch (m.getType()){
             //Server responded from a ping
             case pingResponse:
-                pingReceived(m.getServerID(), time);
+                processPing(time, m.getSource());
                 break;
-            //Server infected the Fault detector
-            case serverStateResponse:
-                if(m.getState().equals(State.INFECTED)){
-                    numCrashes++;
-                    timeCrashed = 0;
-                    currentInvulnerabilityTime = invulnerabilityTime;
-                    state = State.INFECTED;
-                }
-                break;
-
-
-            //FD/Server is removed for being infected
-            case serverInfected:
-                if(!id.equals(m.getId())){
-                    faultDetectors.remove(m.getId());
-                }
-                break;
-            //Pair wants to return to the system
-            case reviveRequest:
-                if(!id.equals(m.getId())){
-                    faultDetectors.add(m.getId());
-                    networkSimulator.writeBuffer(m.getId(), new Message(id, Message.Type.revived, faultDetectors));
-                }
+            default:
+                processMessage(m);
                 break;
         }
     }
 
-    private void pingReceived(String server, int time){
-        Ping ping = pingInformation.get(server);
-        ping.setWaitingForPing(false);
-        ping.addDistributionData(time);
-    }
-
-    private boolean isInfected(Ping ping, int time){
-        if(--currentInvulnerabilityTime > 0 || !ping.isWaitingForPing()){
-            return false;
-        }
-        int waitedTime = time - ping.getLastPing();
-        double p = ping.getDistributionProbability(waitedTime);
-
-        return p < uncertaintyPercentage;
-    }
+    public abstract boolean isInfected(int time, String server);
+    public abstract void decidePing(int time, String server);
+    public abstract void processPing(int time, String server);
 
 
-    /************************/
-    /** INFECTED BEHAVIOUR **/
-    /************************/
+     /* ------------------------- *\
+    |                               |
+    |       Infected Behaviour      |
+    |                               |
+     \* ------------------------- */
 
-    private void decideInfected(){
+    public void decideInfected(int time){
         ArrayList<Message> messages = networkSimulator.readBuffer(id);
 
         if(messages != null){
             for(Message m : messages){
-                processMessageInfected(m);
+                processMessageInfected(time, m);
             }
         }
 
-        if(++timeCrashed == timeToReboot){
+        if(++timeInfected == timeToReboot){
             //requests updated list of FDs
-            broadcastFDs(new Message(id, Message.Type.reviveRequest));
+            broadcast(pairInfos, "faultDetectors", Message.Type.reviveRequest);
         }
     }
 
-    private void processMessageInfected(Message m){
+    public void processMessageInfected(int time, Message m){
+        processMessage(m);
+    }
+
+
+     /* ------------------------- *\
+    |                               |
+    |       Auxiliary Methods       |
+    |                               |
+     \* ------------------------- */
+
+    private void processMessage(Message m){
         switch (m.getType()){
-            //Will this have any use anymore?
-            case serverStateResponse:
-                if(m.getState().equals(State.INFECTED)){
-                    correctCrashes++;
+            //FD/Server is removed for being infected
+            case serverInfected:
+                if(!pairInfos.get().getServerID().equals(new String(m.getContent()))){
+
+                    faultDetectors.remove(m.getSource());
+                } else{
+                    state = State.REMOVED;
+                }
+
+                break;
+            //Pair wants to return to the system
+            case reviveRequest:
+                if(!id.equals(m.getSource())){
+                    faultDetectors.add(m.getSource());
+                    sendMessage(m.getSource(), Message.Type.reviveResponse, SerializationUtils.serialize(faultDetectors));
                 }
                 break;
-            case revived:
-                //received updated list of FDs, ready to revive
-                if(state.equals(State.HEALTHY)) break;
-
-                faultDetectors = new ArrayList<>(m.getList());
-                networkSimulator.writeBuffer(serverId, new Message(id, Message.Type.revived));
+            case reviveResponse:
+                String serverID = servers.get((int) Math.ceil((double)servers.size() / 2));
+                faultDetectors = new ArrayList<>(SerializationUtils.deserialize(m.getContent()));
+                currentInvulnerabilityTimes.replace(serverID, invulnerabilityTime);
+                sendMessage(serverID, Message.Type.reviveResponse);
                 state = State.HEALTHY;
                 break;
         }
     }
 
-    /************************/
-    /** AUXILIAR BEHAVIOUR **/
-    /************************/
+    public void restart(){
+        this.state = State.HEALTHY;
 
-    public void broadcastFDs(Message message){
-        for(String id : faultDetectors){
-            networkSimulator.writeBuffer(id, message);
+        for(PairInfo info : pairInfos){
+            info.setCurrentInvulnerabilityTime(invulnerabilityTime);
         }
     }
+
+    public void broadcast(ArrayList<PairInfo> destinations, String type, Message.Type messageType){
+        for(PairInfo destination : destinations){
+            sendMessage(type.equals("servers") ? destination.getServerID() : destination.getFaultDetectorID(), messageType);
+        }
+    }
+
+    public void broadcast(ArrayList<PairInfo> destinations, String type, Message.Type messageType, byte[] content){
+        for(PairInfo destination : destinations){
+            sendMessage(type.equals("servers") ? destination.getServerID() : destination.getFaultDetectorID(), messageType, content);
+        }
+    }
+
+    public void sendMessage(String destination, Message.Type messageType){
+        networkSimulator.writeBuffer(destination, new Message(id, destination, messageType, state.equals(State.INFECTED)));
+    }
+
+    public void sendMessage(String destination, Message.Type messageType, byte[] content){
+        networkSimulator.writeBuffer(destination, new Message(id, destination, messageType, state.equals(State.INFECTED), content));
+    }
+
+
+
+     /* ------------------------- *\
+    |                               |
+    |        Setters/Getters        |
+    |                               |
+     \* ------------------------- */
 
     public String getId(){
         return this.id;
@@ -211,29 +198,15 @@ public class FaultDetector {
         return state;
     }
 
-    public void setFaultDetectors(ArrayList<String> l){
-        this.faultDetectors = l;
-    }
+    public abstract HashMap<String, String> getStatistics(int time);
 
-    public FaultDetectorStatistics getStatistics(int time){
-        double error = 0.;
+    public void setNeighbours(ArrayList<String> servers, ArrayList<String> faultDetectors) {
+        myIndex = (int) Math.ceil((double)servers.size() / 2);
 
-        for(int t : waitingTime){
-            error += (t - optimalWaitingTime)*(t - optimalWaitingTime);
-        }
+        pairInfos = new ArrayList<>(servers.size());
 
-        if(waitingTime.size() != 0){
-            error = error / waitingTime.size();
-        }
-
-        return new FaultDetectorStatistics(id, numCrashes, correctCrashes, (double)numCrashes/time * 100, (numCrashes == 0 ? 100 : ((double)correctCrashes / (double)numCrashes *100)), error);
-    }
-
-    public void setServers(ArrayList<String> servers) {
-        this.servers = servers;
-
-        for(String server : servers){
-            pingInformation.put(server, new Ping(frequencyPing, lastPing, distribution));
+        for(int i = 0; i < servers.size(); i++){
+            pairInfos.add(new PairInfo(faultDetectors.get(i), servers.get(i), invulnerabilityTime));
         }
     }
 }

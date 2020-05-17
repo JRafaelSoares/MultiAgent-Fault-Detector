@@ -11,18 +11,18 @@ public class Server {
 
     private String id;
     private State state;
-    private String faultDetectorId;
+    private String faultDetectorIds;
     private NetworkSimulator networkSimulator;
     private ArrayList<String> faultDetectorID = new ArrayList<>();
 
     private HashMap<String, Integer> pingAnswerTime = new HashMap<>();
-    private int invulnerabilityTime = 100;
+    private int invulnerabilityTime = FaultDetector.invulnerabilityTime;
     private int currentInvulnerabilityTime;
 
     //crashed variables
 
     //infected variables
-    private double probInfected;
+    public static double probOutsideInfection = 0.01;
 
     //ping variables
     private int minTimeAnswer;
@@ -30,24 +30,17 @@ public class Server {
     private int infectedDelay;
     private int whenToAnswerPing;
 
-    Server(String id, String idFaultDetector, double probInfected, int minTimeAnswer, int maxTimeAnswer, int infectedDelay, NetworkSimulator networkSimulator){
+    Server(String id, String idFaultDetector, int minTimeAnswer, int maxTimeAnswer, int infectedDelay, NetworkSimulator networkSimulator){
         this.state = State.HEALTHY;
         this.id = id;
-        this.faultDetectorId = idFaultDetector;
+        this.faultDetectorIds = idFaultDetector;
         this.currentInvulnerabilityTime = invulnerabilityTime;
-        this.probInfected = probInfected;
         this.minTimeAnswer = minTimeAnswer;
         this.maxTimeAnswer = maxTimeAnswer;
         this.infectedDelay = infectedDelay;
         this.whenToAnswerPing = -1;
         this.networkSimulator = networkSimulator;
 
-    }
-
-    public void restart(){
-        this.state = State.HEALTHY;
-        this.currentInvulnerabilityTime = invulnerabilityTime;
-        this.whenToAnswerPing = -1;
     }
 
     public void decide() {
@@ -63,9 +56,13 @@ public class Server {
         }
     }
 
-    /***********************/
-    /** HEALTHY BEHAVIOUR **/
-    /***********************/
+
+    /* ------------------------- *\
+   |                               |
+   |       Healthy Behaviour       |
+   |                               |
+    \* ------------------------- */
+
     private void decideHealthy(){
         ArrayList<Message> messages = networkSimulator.readBuffer(id);
 
@@ -75,11 +72,10 @@ public class Server {
             }
         }
 
-        pingCheck();
+        decidePing();
 
-        if(hasInfected()){
+        if(isInfected()){
             state = State.INFECTED;
-            networkSimulator.writeBuffer(faultDetectorId, new Message(id, Message.Type.serverStateResponse, state));
         }
     }
 
@@ -87,22 +83,21 @@ public class Server {
         switch (m.getType()){
             case pingRequest:
                 Random random = new Random();
-                pingAnswerTime.replace(m.getId(), random.nextInt((maxTimeAnswer - minTimeAnswer) + 1) + minTimeAnswer);
-                break;
-            case serverStateRequest:
-                networkSimulator.writeBuffer(faultDetectorId, new Message(id, Message.Type.serverStateResponse, state));
+                pingAnswerTime.replace(m.getSource(), random.nextInt((maxTimeAnswer - minTimeAnswer) + 1) + minTimeAnswer);
                 break;
         }
     }
 
-    private boolean hasInfected(){
-        return --currentInvulnerabilityTime <= 0 && new Random().nextDouble() <= probInfected;
+    private boolean isInfected(){
+        return --currentInvulnerabilityTime <= 0 && new Random().nextDouble() <= probOutsideInfection;
     }
 
-    /************************/
-    /** INFECTED BEHAVIOUR **/
-    /************************/
 
+     /* ------------------------- *\
+    |                               |
+    |       Infected Behaviour      |
+    |                               |
+     \* ------------------------- */
 
     private void decideInfected() {
         ArrayList<Message> messages = networkSimulator.readBuffer(id);
@@ -113,7 +108,7 @@ public class Server {
             }
         }
 
-        pingCheck();
+        decidePing();
 
         //Infect other servers behaviour
     }
@@ -123,32 +118,45 @@ public class Server {
             //Ping Response
             case pingRequest:
                 Random random = new Random();
-                pingAnswerTime.replace(m.getId(), random.nextInt((maxTimeAnswer - minTimeAnswer) + 1) + minTimeAnswer + infectedDelay);
+                pingAnswerTime.replace(m.getSource(), random.nextInt((maxTimeAnswer - minTimeAnswer) + 1) + minTimeAnswer + infectedDelay);
                 break;
                 //Bring back online
-            case revived:
+            case reviveResponse:
                 state = State.HEALTHY;
                 currentInvulnerabilityTime = invulnerabilityTime;
-                break;
-                //Respond server status
-            case serverStateRequest:
-                networkSimulator.writeBuffer(faultDetectorId, new Message(id, Message.Type.serverStateResponse, state));
                 break;
         }
     }
 
-    /************************/
-    /** AUXILIAR BEHAVIOUR **/
-    /************************/
-    public void pingCheck(){
+
+     /* ------------------------- *\
+    |                               |
+    |       Auxiliary Methods       |
+    |                               |
+     \* ------------------------- */
+
+    public void decidePing(){
         for(String faultDetector : faultDetectorID){
             int whenToPingValue = pingAnswerTime.get(faultDetector);
             if(whenToPingValue == 0) {
-                networkSimulator.writeBuffer(faultDetector, new Message(faultDetector, id, Message.Type.pingResponse));
+                networkSimulator.writeBuffer(faultDetector, new Message(id, faultDetector, Message.Type.pingResponse, state.equals(State.INFECTED)));
             }
             pingAnswerTime.replace(faultDetector, --whenToPingValue);
         }
     }
+
+    public void restart(){
+        this.state = State.HEALTHY;
+        this.currentInvulnerabilityTime = invulnerabilityTime;
+        this.whenToAnswerPing = -1;
+    }
+
+
+     /* ------------------------- *\
+    |                               |
+    |        Setters/Getters        |
+    |                               |
+     \* ------------------------- */
 
     public String getId(){
         return this.id;
@@ -158,8 +166,9 @@ public class Server {
         return state;
     }
 
-    public void setFaultDetectorID(ArrayList<String> faultDetectorID) {
+    public void setFaultDetectorIDs(ArrayList<String> faultDetectorID) {
         this.faultDetectorID = faultDetectorID;
+
         for(String faultDetector : faultDetectorID){
             pingAnswerTime.put(faultDetector, this.whenToAnswerPing);
         }

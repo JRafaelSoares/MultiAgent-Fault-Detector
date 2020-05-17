@@ -2,9 +2,6 @@ package AASMAProject.MultiAgentFaultDetector;
 
 import AASMAProject.Graphics.GraphicsHandler;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -13,27 +10,43 @@ import java.util.Map;
 public class Environment {
     private int currentTime;
     private HashMap<String, Pair> listPair;
+    private int numNeighbours = 5;
 
     public Environment(int num){
         listPair = new HashMap<>();
         currentTime = 0;
         NetworkSimulator networkSimulator = new NetworkSimulator();
-        ArrayList<String> faultDetectorID = new ArrayList<>();
-        ArrayList<String> serverID = new ArrayList<>();
+        ArrayList<String> faultDetectorIDs = new ArrayList<>();
+        ArrayList<String> serverIDs = new ArrayList<>();
 
         for(int i=0; i<num; i++){
-            Server server = new Server("S" + i, "FD" + i, 0.01, 2, 5, 3, networkSimulator);
-            FaultDetector faultDetector = new FaultDetector("FD" + i, 10, "S" + i, networkSimulator, new Distribution(Distribution.Type.NORMAL));
+            Server server = new Server("S" + i, "FD" + i, 2, 5, 3, networkSimulator);
+            FaultDetector faultDetector = new FaultDetectorBalanced("FD" + i, 10, networkSimulator, new Distribution(Distribution.Type.NORMAL), 50);
 
             listPair.put(faultDetector.getId(), new Pair(faultDetector, server));
-            faultDetectorID.add("FD" + i);
-            serverID.add("S" + i);
+            faultDetectorIDs.add("FD" + i);
+            serverIDs.add("S" + i);
         }
 
+
+        int i = 0;
         for(Pair p : listPair.values()){
-            p.getFaultDetector().setFaultDetectors(new ArrayList<>(faultDetectorID));
-            p.getFaultDetector().setServers(new ArrayList<>(serverID));
-            p.getServer().setFaultDetectorID(new ArrayList<>(faultDetectorID));
+            int index1 = Math.floorMod(i - numNeighbours / 2, serverIDs.size());
+            int index2 = Math.floorMod(i + numNeighbours / 2, serverIDs.size());
+
+            ArrayList<String> serverNeighbours = new ArrayList<>(numNeighbours);
+            ArrayList<String> fdNeighbours = new ArrayList<>(numNeighbours);
+
+            for(int j = index1; j != index2; j = (j + 1) % serverIDs.size()){
+                serverNeighbours.add(serverIDs.get(j));
+                fdNeighbours.add(faultDetectorIDs.get(j));
+            }
+
+            p.getFaultDetector().setFaultDetectorNeighbours(new ArrayList<>(faultDetectorIDs));
+            p.getFaultDetector().setServerNeighbours(serverNeighbours);
+            p.getServer().setFaultDetectorIDs(fdNeighbours);
+
+            i++;
         }
     }
 
@@ -55,12 +68,8 @@ public class Environment {
     }
 
     public FaultDetectorStatistics getFaultDetectorStatistics(String id){
-        return listPair.get(id).getFaultDetector().getStatistics(currentTime);
-        /*StringBuilder res = new StringBuilder("Number of TIKS: " + currentTime + "\n\n");
-        for(Pair p : listPair.values()){
-            res.append(p.getFaultDetector().getStatistics(currentTime)).append("\n\n");
-        }
-        return res.toString();*/
+        //return listPair.get(id).getFaultDetector().getStatistics(currentTime);
+        return new FaultDetectorStatistics(id, 0, 0, 0, 0, 0);
     }
 
     public int getCurrentTime(){
