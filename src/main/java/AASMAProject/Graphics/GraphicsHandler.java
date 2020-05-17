@@ -207,7 +207,7 @@ public class GraphicsHandler extends Application {
 
     private void updateInterface(Environment environment, int numPairs, SmartGraphPanel<String, String> graphView, GraphContainerWithControlPanel graphContainer){
         for(int j = 0; j < numPairs; j++){
-            Map.Entry<State, State> statePair = environment.getStatePair("FD" + j);
+            Map.Entry<State, State> statePair = environment.getStatePair(j);
 
             switch (statePair.getKey()){
                 case HEALTHY:

@@ -11,11 +11,10 @@ public class Server {
 
     private String id;
     private State state;
-    private String faultDetectorIds;
     private NetworkSimulator networkSimulator;
-    private ArrayList<String> faultDetectorID = new ArrayList<>();
+    private ArrayList<String> faultDetectorIDs;
 
-    private HashMap<String, Integer> pingAnswerTime = new HashMap<>();
+    private HashMap<String, Integer> pingAnswerTime;
     private int invulnerabilityTime = FaultDetector.invulnerabilityTime;
     private int currentInvulnerabilityTime;
 
@@ -30,10 +29,9 @@ public class Server {
     private int infectedDelay;
     private int whenToAnswerPing;
 
-    Server(String id, String idFaultDetector, int minTimeAnswer, int maxTimeAnswer, int infectedDelay, NetworkSimulator networkSimulator){
+    Server(String id, int minTimeAnswer, int maxTimeAnswer, int infectedDelay, NetworkSimulator networkSimulator){
         this.state = State.HEALTHY;
         this.id = id;
-        this.faultDetectorIds = idFaultDetector;
         this.currentInvulnerabilityTime = invulnerabilityTime;
         this.minTimeAnswer = minTimeAnswer;
         this.maxTimeAnswer = maxTimeAnswer;
@@ -52,6 +50,10 @@ public class Server {
             case INFECTED:
                 if(debug) System.out.println("[" + id + "]" + " infected");
                 decideInfected();
+                break;
+            case REMOVED:
+                if(debug) System.out.println("[" + id + "]" + " removed");
+                decideRemoved();
                 break;
         }
     }
@@ -84,6 +86,9 @@ public class Server {
             case pingRequest:
                 Random random = new Random();
                 pingAnswerTime.replace(m.getSource(), random.nextInt((maxTimeAnswer - minTimeAnswer) + 1) + minTimeAnswer);
+                break;
+            default:
+                processMessage(m);
                 break;
         }
     }
@@ -120,7 +125,31 @@ public class Server {
                 Random random = new Random();
                 pingAnswerTime.replace(m.getSource(), random.nextInt((maxTimeAnswer - minTimeAnswer) + 1) + minTimeAnswer + infectedDelay);
                 break;
-                //Bring back online
+            default:
+                processMessage(m);
+                break;
+        }
+    }
+
+     /* ------------------------- *\
+    |                               |
+    |       Removed Behaviour       |
+    |                               |
+     \* ------------------------- */
+
+    public void decideRemoved(){
+        ArrayList<Message> messages = networkSimulator.readBuffer(id);
+
+        if(messages != null){
+            for(Message m : messages){
+                processMessageRemoved(m);
+            }
+        }
+    }
+
+    private void processMessageRemoved(Message m){
+        switch(m.getType()){
+            //Bring back online
             case reviveResponse:
                 state = State.HEALTHY;
                 currentInvulnerabilityTime = invulnerabilityTime;
@@ -136,12 +165,21 @@ public class Server {
      \* ------------------------- */
 
     public void decidePing(){
-        for(String faultDetector : faultDetectorID){
+        for(String faultDetector : faultDetectorIDs){
             int whenToPingValue = pingAnswerTime.get(faultDetector);
             if(whenToPingValue == 0) {
                 networkSimulator.writeBuffer(faultDetector, new Message(id, faultDetector, Message.Type.pingResponse, state.equals(State.INFECTED)));
             }
             pingAnswerTime.replace(faultDetector, --whenToPingValue);
+        }
+    }
+
+    private void processMessage(Message m){
+        switch (m.getType()){
+            case removePair:
+                if(debug) System.out.println("[" + id + "] Received removal notice from " + m.getSource());
+                state = State.REMOVED;
+                break;
         }
     }
 
@@ -166,10 +204,12 @@ public class Server {
         return state;
     }
 
-    public void setFaultDetectorIDs(ArrayList<String> faultDetectorID) {
-        this.faultDetectorID = faultDetectorID;
+    public void setFaultDetectorIDs(ArrayList<String> faultDetectorIDs) {
+        this.faultDetectorIDs = faultDetectorIDs;
 
-        for(String faultDetector : faultDetectorID){
+        pingAnswerTime = new HashMap<>(faultDetectorIDs.size());
+
+        for(String faultDetector : faultDetectorIDs){
             pingAnswerTime.put(faultDetector, this.whenToAnswerPing);
         }
     }

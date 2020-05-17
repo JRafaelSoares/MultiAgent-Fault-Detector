@@ -7,7 +7,7 @@ public class Message {
     public enum Type{
         pingRequest,
         pingResponse,
-        serverInfected,
+        removePair,
         reviveResponse,
         reviveRequest,
     }

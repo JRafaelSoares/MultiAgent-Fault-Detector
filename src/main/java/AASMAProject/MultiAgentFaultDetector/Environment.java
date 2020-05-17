@@ -9,28 +9,28 @@ import java.util.Map;
 
 public class Environment {
     private int currentTime;
-    private HashMap<String, Pair> listPair;
+    private ArrayList<Pair> listPair;
     private int numNeighbours = 5;
 
     public Environment(int num){
-        listPair = new HashMap<>();
+        listPair = new ArrayList<>(num);
         currentTime = 0;
         NetworkSimulator networkSimulator = new NetworkSimulator();
         ArrayList<String> faultDetectorIDs = new ArrayList<>();
         ArrayList<String> serverIDs = new ArrayList<>();
 
         for(int i=0; i<num; i++){
-            Server server = new Server("S" + i, "FD" + i, 2, 5, 3, networkSimulator);
-            FaultDetector faultDetector = new FaultDetectorBalanced("FD" + i, 10, networkSimulator, new Distribution(Distribution.Type.NORMAL), 50);
+            Server server = new Server("S" + i, 2, 5, 3, networkSimulator);
+            FaultDetector faultDetector = new FaultDetectorBalanced("FD" + i, 10, networkSimulator, Distribution.Type.NORMAL, 5);
 
-            listPair.put(faultDetector.getId(), new Pair(faultDetector, server));
+            listPair.add(new Pair(faultDetector, server));
             faultDetectorIDs.add("FD" + i);
             serverIDs.add("S" + i);
         }
 
 
         int i = 0;
-        for(Pair p : listPair.values()){
+        for(Pair p : listPair){
             int index1 = Math.floorMod(i - numNeighbours / 2, serverIDs.size());
             int index2 = Math.floorMod(i + numNeighbours / 2, serverIDs.size());
 
@@ -52,7 +52,7 @@ public class Environment {
     public void restart(){
         currentTime = 0;
 
-        for(Pair p : listPair.values()){
+        for(Pair p : listPair){
             p.getFaultDetector().restart();
             p.getServer().restart();
         }
@@ -60,7 +60,7 @@ public class Environment {
 
     public void decision(){
         System.out.println("\n\n\n\n");
-        for(Pair p : listPair.values()){
+        for(Pair p : listPair){
             p.getFaultDetector().decide(currentTime);
             p.getServer().decide();
         }
@@ -76,7 +76,7 @@ public class Environment {
         return currentTime;
     }
 
-    public Map.Entry<State, State> getStatePair(String id){
+    public Map.Entry<State, State> getStatePair(int id){
         Pair pair = listPair.get(id);
 
         return new AbstractMap.SimpleEntry<>(pair.getFaultDetector().getState(), pair.getServer().getState());

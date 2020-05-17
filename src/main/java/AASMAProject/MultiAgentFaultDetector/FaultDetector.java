@@ -1,9 +1,6 @@
 package AASMAProject.MultiAgentFaultDetector;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Random;
+import java.util.*;
 
 public abstract class FaultDetector {
 
@@ -68,8 +65,13 @@ public abstract class FaultDetector {
 
             if(info.decrementAndGet() == 0 && isInfected(time, info.getServerID())){
                 if(debug) System.out.println("[" + id + "]" + " caught " + info.getServerID());
-                broadcast(pairInfos.values(), Message.Type.serverInfected, info.getServerID().getBytes());
+                broadcast(pairInfos.values(), Message.Type.removePair, info.getServerID().getBytes());
                 info.setState(State.REMOVED);
+
+                if(myServer.equals(info.getServerID())){
+                    sendMessage(myServer, Message.Type.removePair);
+                    state = State.REMOVED;
+                }
             }
 
             decidePing(time, info.getServerID());
@@ -125,22 +127,41 @@ public abstract class FaultDetector {
      \* ------------------------- */
 
     public void decideRemoved(int time){
+
+        ArrayList<Message> messages = networkSimulator.readBuffer(id);
+
+        if(messages != null){
+            for(Message m : messages){
+                processMessageRemoved(m);
+            }
+        }
+
         if(++timeRemoved == timeToReboot){
             if(debug) System.out.println("[" + id + "]" + " rebooted ");
 
-            /* clear buffer */
-            networkSimulator.readBuffer(id);
-
-            /* request revive */
-            broadcast(pairInfos.values(), Message.Type.reviveRequest, myServer.getBytes());
-
-            /* revive my server */
-            sendMessage(myServer, Message.Type.reviveResponse);
-
-            /* change my state */
-            state = State.HEALTHY;
-            pairInfos.get(myServer).setState(State.HEALTHY);
+            for(PairInfo info : pairInfos.values()){
+                info.setState(State.REMOVED);
+                sendMessage(info.getFaultDetectorID(), Message.Type.reviveRequest, myServer.getBytes());
+            }
         }
+    }
+
+    public void processMessageRemoved(Message m){
+        switch(m.getType()){
+            case reviveResponse:
+                if(debug) System.out.println("[" + id + "]" + " revive response from " + new String(m.getContent()));
+                pairInfos.get(new String(m.getContent())).setState(State.HEALTHY);
+
+                /* revive my server */
+                sendMessage(myServer, Message.Type.reviveResponse);
+
+                /* change my state */
+                state = State.HEALTHY;
+                pairInfos.get(myServer).setState(State.HEALTHY);
+
+                break;
+        }
+
     }
 
 
@@ -153,7 +174,7 @@ public abstract class FaultDetector {
     private void processMessage(Message m){
         PairInfo info;
         switch (m.getType()){
-            case serverInfected:
+            case removePair:
                 if(debug) System.out.println("[" + id + "]" + " removing infected pair " + new String(m.getContent()));
                 String serverID = new String(m.getContent());
                 info = pairInfos.get(serverID);
@@ -161,6 +182,7 @@ public abstract class FaultDetector {
                     info.setState(State.REMOVED);
                 }
                 if(myServer.equals(serverID)){
+                    sendMessage(myServer, Message.Type.removePair);
                     state = State.REMOVED;
                 }
                 break;
@@ -170,13 +192,12 @@ public abstract class FaultDetector {
                 info = pairInfos.get(new String(m.getContent()));
                 if(info != null){
                     info.setState(State.HEALTHY);
-                    sendMessage(m.getSource(), Message.Type.reviveResponse);
+                    sendMessage(m.getSource(), Message.Type.reviveResponse, myServer.getBytes());
                 }
                 break;
-
             case reviveResponse:
                 if(debug) System.out.println("[" + id + "]" + " revive response from " + m.getSource());
-                pairInfos.get(m.getSource()).setState(State.HEALTHY);
+                pairInfos.get(new String(m.getContent())).setState(State.HEALTHY);
                 break;
         }
     }
@@ -186,6 +207,7 @@ public abstract class FaultDetector {
 
         for(PairInfo info : pairInfos.values()){
             info.setCurrentInvulnerabilityTime(invulnerabilityTime);
+            info.setState(State.HEALTHY);
         }
     }
 

@@ -2,6 +2,7 @@ package AASMAProject.MultiAgentFaultDetector;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 
 public class FaultDetectorBalanced extends FaultDetector {
 
@@ -11,19 +12,17 @@ public class FaultDetectorBalanced extends FaultDetector {
 
     //ping variables
     private long frequencyPing;
-    private int lastPing;
-    private Distribution distribution;
+    private Distribution.Type distributionType;
 
     private HashMap<String, Double> trust;
     private double trustThreshold;
 
     private HashMap<String, Ping> pingInformation = new HashMap<>();
 
-    public FaultDetectorBalanced(String id, long pingTime, NetworkSimulator networkSimulator, Distribution d, double trustThreshold) {
+    public FaultDetectorBalanced(String id, long pingTime, NetworkSimulator networkSimulator, Distribution.Type distributionType, double trustThreshold) {
         super(id, networkSimulator);
         this.frequencyPing = pingTime;
-        this.lastPing = -1;
-        this.distribution = d;
+        this.distributionType = distributionType;
         this.trustThreshold = trustThreshold;
     }
 
@@ -95,7 +94,10 @@ public class FaultDetectorBalanced extends FaultDetector {
     public void restart() {
         super.restart();
 
-        this.lastPing = -1;
+        for(String server : pingInformation.keySet()){
+            pingInformation.replace(server, new Ping(frequencyPing, -1, new Distribution(distributionType)));
+            trust.replace(server, 100.0);
+        }
     }
 
 
@@ -112,7 +114,7 @@ public class FaultDetectorBalanced extends FaultDetector {
         this.trust = new HashMap<>(servers.size());
 
         for(String server : servers){
-            pingInformation.put(server, new Ping(frequencyPing, lastPing, distribution));
+            pingInformation.put(server, new Ping(frequencyPing, -1, new Distribution(distributionType)));
             trust.put(server, 100.0);
         }
     }
