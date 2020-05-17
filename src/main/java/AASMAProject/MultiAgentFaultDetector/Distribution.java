@@ -29,14 +29,7 @@ public class Distribution {
     }
 
     public double getVariance() {
-        /*double temp = 0;
-        for(double a :data)
-            temp += (a-mean)*(a-mean);
-
-        variance = temp/(data.size()-1);*/
-
         if(varianceSum == 0.) varianceSum = 0.0000000000000001;
-
         return varianceSum / numDataPoints;
     }
 

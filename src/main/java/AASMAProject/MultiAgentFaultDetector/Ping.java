@@ -36,6 +36,7 @@ public class Ping {
 
     public void addDistributionData(int time){
         distribution.addData(time - lastPing);
+        System.out.println("Data: " + (time - lastPing) + " Mean: " + distribution.getMean() + " Variance: " + distribution.getVariance());
     }
 
     public double getDistributionProbability(int waitedTime){

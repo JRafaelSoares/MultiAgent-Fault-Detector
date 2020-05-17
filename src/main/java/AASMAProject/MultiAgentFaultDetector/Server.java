@@ -7,7 +7,7 @@ import java.util.Random;
 
 public class Server {
 
-    private boolean debug = false;
+    private boolean debug = true;
 
     private String id;
     private State state;
@@ -46,11 +46,11 @@ public class Server {
     public void decide() {
         switch (state){
             case HEALTHY:
-                if(debug) System.out.println(id + " healthy");
+                if(debug) System.out.println("[" + id + "]" + " healthy");
                 decideHealthy();
                 break;
             case INFECTED:
-                if(debug) System.out.println(id + " crashed");
+                if(debug) System.out.println("[" + id + "]" + " infected");
                 decideInfected();
                 break;
         }

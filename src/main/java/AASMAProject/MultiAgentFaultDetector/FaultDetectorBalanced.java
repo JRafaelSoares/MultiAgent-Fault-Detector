@@ -46,7 +46,6 @@ public class FaultDetectorBalanced extends FaultDetector {
         Ping ping = pingInformation.get(server);
 
         if(ping.isTimeToPing(time)){
-
             ping.setWaitingForPing(true);
             ping.setLastPing(time);
             sendMessage(server, Message.Type.pingRequest);
@@ -55,11 +54,14 @@ public class FaultDetectorBalanced extends FaultDetector {
 
     @Override
     public void processPing(int time, String server) {
+        System.out.println("[" + server + "]");
         Ping ping = pingInformation.get(server);
-        ping.setWaitingForPing(false);
         ping.addDistributionData(time);
 
         updateTrust(time, server);
+
+        ping.setWaitingForPing(false);
+
     }
 
     private void updateTrust(int time, String server){
@@ -72,7 +74,9 @@ public class FaultDetectorBalanced extends FaultDetector {
         int waitedTime = time - ping.getLastPing();
         double p = ping.getDistributionProbability(waitedTime);
 
-        trust.replace(server, p * 100);
+        System.out.println("[" + getId() + "]" + " p = " + p + " of " + server);
+
+        trust.replace(server, p * 100 * 2);
     }
 
 
@@ -102,8 +106,8 @@ public class FaultDetectorBalanced extends FaultDetector {
      \* ------------------------- */
 
     @Override
-    public void setServerNeighbours(ArrayList<String> servers) {
-        super.setServerNeighbours(servers);
+    public void setNeighbours(ArrayList<String> servers, ArrayList<String> faultDetectors) {
+        super.setNeighbours(servers, faultDetectors);
 
         this.trust = new HashMap<>(servers.size());
 

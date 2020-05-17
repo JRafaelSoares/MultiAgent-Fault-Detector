@@ -42,8 +42,7 @@ public class Environment {
                 fdNeighbours.add(faultDetectorIDs.get(j));
             }
 
-            p.getFaultDetector().setFaultDetectorNeighbours(new ArrayList<>(faultDetectorIDs));
-            p.getFaultDetector().setServerNeighbours(serverNeighbours);
+            p.getFaultDetector().setNeighbours(serverNeighbours, new ArrayList<>(faultDetectorIDs));
             p.getServer().setFaultDetectorIDs(fdNeighbours);
 
             i++;
@@ -60,6 +59,7 @@ public class Environment {
     }
 
     public void decision(){
+        System.out.println("\n\n\n\n");
         for(Pair p : listPair.values()){
             p.getFaultDetector().decide(currentTime);
             p.getServer().decide();

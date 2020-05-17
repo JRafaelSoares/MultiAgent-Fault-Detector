@@ -213,11 +213,11 @@ public class GraphicsHandler extends Application {
                 case HEALTHY:
                     graphView.getStylableVertex("FD" + j).setStyle(HEALTHY_STYLE);
                     break;
-                case CRASHED:
-                    graphView.getStylableVertex("FD" + j).setStyle(CRASHED_STYLE);
-                    break;
                 case INFECTED:
                     graphView.getStylableVertex("FD" + j).setStyle(INFECTED_STYLE);
+                    break;
+                case REMOVED:
+                    graphView.getStylableVertex("FD" + j).setStyle(CRASHED_STYLE);
                     break;
             }
 
@@ -225,11 +225,11 @@ public class GraphicsHandler extends Application {
                 case HEALTHY:
                     graphView.getStylableVertex("S" + j).setStyle(HEALTHY_STYLE);
                     break;
-                case CRASHED:
-                    graphView.getStylableVertex("S" + j).setStyle(CRASHED_STYLE);
-                    break;
                 case INFECTED:
                     graphView.getStylableVertex("S" + j).setStyle(INFECTED_STYLE);
+                    break;
+                case REMOVED:
+                    graphView.getStylableVertex("S" + j).setStyle(CRASHED_STYLE);
                     break;
             }
 

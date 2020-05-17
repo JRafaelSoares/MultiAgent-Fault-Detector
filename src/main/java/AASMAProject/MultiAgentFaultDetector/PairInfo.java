@@ -1,12 +1,13 @@
 package AASMAProject.MultiAgentFaultDetector;
 
-public class PairInfo {
+import java.io.Serializable;
+
+public class PairInfo implements Serializable {
 
     private String faultDetectorID;
     private String serverID;
 
-    private State serverState;
-    private State faultDetectorState;
+    private State state;
 
     private int currentInvulnerabilityTime;
 
@@ -14,8 +15,7 @@ public class PairInfo {
         this.faultDetectorID = faultDetectorID;
         this.serverID = serverID;
 
-        this.serverState = State.HEALTHY;
-        this.faultDetectorState = State.HEALTHY;
+        this.state = State.HEALTHY;
 
         this.currentInvulnerabilityTime = currentInvulnerabilityTime;
     }
@@ -29,20 +29,12 @@ public class PairInfo {
         return serverID;
     }
 
-    public State getServerState() {
-        return serverState;
+    public State getState() {
+        return state;
     }
 
-    public void setServerState(State serverState) {
-        this.serverState = serverState;
-    }
-
-    public State getFaultDetectorState() {
-        return faultDetectorState;
-    }
-
-    public void setFaultDetectorState(State faultDetectorState) {
-        this.faultDetectorState = faultDetectorState;
+    public void setState(State state) {
+        this.state = state;
     }
 
     public int decrementAndGet(){

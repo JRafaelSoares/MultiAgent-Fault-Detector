@@ -1,9 +1,7 @@
 package AASMAProject.MultiAgentFaultDetector;
 
-
-import org.apache.commons.lang3.SerializationUtils;
-
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Random;
 
@@ -12,20 +10,19 @@ public abstract class FaultDetector {
     private boolean debug = true;
 
     private String id;
+    private String myServer;
     private State state;
-
-    private int myIndex;
 
     private NetworkSimulator networkSimulator;
 
-    private ArrayList<PairInfo> pairInfos;
+    private HashMap<String, PairInfo> pairInfos;
 
     public static int invulnerabilityTime = 100;
     public static double probInsideInfection = 0.2;
 
     //crashed variables
     private int timeToReboot = 10;
-    private int timeInfected;
+    private int timeRemoved;
 
     public FaultDetector(String id, NetworkSimulator networkSimulator){
         this.state = State.HEALTHY;
@@ -36,12 +33,16 @@ public abstract class FaultDetector {
     public void decide(int time){
         switch (state){
             case HEALTHY:
-                if(debug) System.out.println(id + " healthy");
+                if(debug) System.out.println("[" + id + "]" + " healthy");
                 decideHealthy(time);
                 break;
             case INFECTED:
-                if(debug) System.out.println(id + " infected");
+                if(debug) System.out.println("[" + id + "]" + " infected");
                 decideInfected(time);
+                break;
+            case REMOVED:
+                if(debug) System.out.println("[" + id + "]" + " removed");
+                decideRemoved(time);
                 break;
         }
     }
@@ -55,17 +56,20 @@ public abstract class FaultDetector {
 
     public void decideHealthy(int time){
         ArrayList<Message> messages = networkSimulator.readBuffer(id);
-        //Read messages
+
         if(messages != null) {
             for(Message m : messages){
                 processMessageHealthy(time, m);
             }
         }
-        //If we detect a server seems to be infected (doesnt respond on time)
 
-        for(PairInfo info : pairInfos){
+        for(PairInfo info : pairInfos.values()){
+            if(info.getState().equals(State.REMOVED)) continue;
+
             if(info.decrementAndGet() == 0 && isInfected(time, info.getServerID())){
-                broadcast(pairInfos, "faultDetectors", Message.Type.serverInfected, info.getServerID().getBytes());
+                if(debug) System.out.println("[" + id + "]" + " caught " + info.getServerID());
+                broadcast(pairInfos.values(), Message.Type.serverInfected, info.getServerID().getBytes());
+                info.setState(State.REMOVED);
             }
 
             decidePing(time, info.getServerID());
@@ -73,12 +77,12 @@ public abstract class FaultDetector {
     }
 
     public void processMessageHealthy(int time, Message m){
-        if(m.isContagious() && pairInfos.get(myIndex).getCurrentInvulnerabilityTime() <= 0 && new Random().nextDouble() <= probInsideInfection){
+        if(m.isContagious() && pairInfos.get(myServer).getCurrentInvulnerabilityTime() == 0 && new Random().nextDouble() <= probInsideInfection){
+            if(debug) System.out.println("[" + id + "]" + "infected by " + m.getSource());
             state = State.INFECTED;
         }
 
         switch (m.getType()){
-            //Server responded from a ping
             case pingResponse:
                 processPing(time, m.getSource());
                 break;
@@ -107,15 +111,36 @@ public abstract class FaultDetector {
                 processMessageInfected(time, m);
             }
         }
-
-        if(++timeInfected == timeToReboot){
-            //requests updated list of FDs
-            broadcast(pairInfos, "faultDetectors", Message.Type.reviveRequest);
-        }
     }
 
     public void processMessageInfected(int time, Message m){
         processMessage(m);
+    }
+
+
+     /* ------------------------- *\
+    |                               |
+    |       Removed Behaviour       |
+    |                               |
+     \* ------------------------- */
+
+    public void decideRemoved(int time){
+        if(++timeRemoved == timeToReboot){
+            if(debug) System.out.println("[" + id + "]" + " rebooted ");
+
+            /* clear buffer */
+            networkSimulator.readBuffer(id);
+
+            /* request revive */
+            broadcast(pairInfos.values(), Message.Type.reviveRequest, myServer.getBytes());
+
+            /* revive my server */
+            sendMessage(myServer, Message.Type.reviveResponse);
+
+            /* change my state */
+            state = State.HEALTHY;
+            pairInfos.get(myServer).setState(State.HEALTHY);
+        }
     }
 
 
@@ -126,30 +151,32 @@ public abstract class FaultDetector {
      \* ------------------------- */
 
     private void processMessage(Message m){
+        PairInfo info;
         switch (m.getType()){
-            //FD/Server is removed for being infected
             case serverInfected:
-                if(!pairInfos.get().getServerID().equals(new String(m.getContent()))){
-
-                    faultDetectors.remove(m.getSource());
-                } else{
+                if(debug) System.out.println("[" + id + "]" + " removing infected pair " + new String(m.getContent()));
+                String serverID = new String(m.getContent());
+                info = pairInfos.get(serverID);
+                if(info != null){
+                    info.setState(State.REMOVED);
+                }
+                if(myServer.equals(serverID)){
                     state = State.REMOVED;
                 }
-
                 break;
-            //Pair wants to return to the system
+
             case reviveRequest:
-                if(!id.equals(m.getSource())){
-                    faultDetectors.add(m.getSource());
-                    sendMessage(m.getSource(), Message.Type.reviveResponse, SerializationUtils.serialize(faultDetectors));
+                if(debug) System.out.println("[" + id + "]" + " rebooting pair " + new String(m.getContent()));
+                info = pairInfos.get(new String(m.getContent()));
+                if(info != null){
+                    info.setState(State.HEALTHY);
+                    sendMessage(m.getSource(), Message.Type.reviveResponse);
                 }
                 break;
+
             case reviveResponse:
-                String serverID = servers.get((int) Math.ceil((double)servers.size() / 2));
-                faultDetectors = new ArrayList<>(SerializationUtils.deserialize(m.getContent()));
-                currentInvulnerabilityTimes.replace(serverID, invulnerabilityTime);
-                sendMessage(serverID, Message.Type.reviveResponse);
-                state = State.HEALTHY;
+                if(debug) System.out.println("[" + id + "]" + " revive response from " + m.getSource());
+                pairInfos.get(m.getSource()).setState(State.HEALTHY);
                 break;
         }
     }
@@ -157,20 +184,24 @@ public abstract class FaultDetector {
     public void restart(){
         this.state = State.HEALTHY;
 
-        for(PairInfo info : pairInfos){
+        for(PairInfo info : pairInfos.values()){
             info.setCurrentInvulnerabilityTime(invulnerabilityTime);
         }
     }
 
-    public void broadcast(ArrayList<PairInfo> destinations, String type, Message.Type messageType){
+    public void broadcast(Collection<PairInfo> destinations, Message.Type messageType){
         for(PairInfo destination : destinations){
-            sendMessage(type.equals("servers") ? destination.getServerID() : destination.getFaultDetectorID(), messageType);
+            if(!id.equals(destination.getFaultDetectorID()) && !destination.getState().equals(State.REMOVED)){
+                sendMessage(destination.getFaultDetectorID(), messageType);
+            }
         }
     }
 
-    public void broadcast(ArrayList<PairInfo> destinations, String type, Message.Type messageType, byte[] content){
+    public void broadcast(Collection<PairInfo> destinations, Message.Type messageType, byte[] content){
         for(PairInfo destination : destinations){
-            sendMessage(type.equals("servers") ? destination.getServerID() : destination.getFaultDetectorID(), messageType, content);
+            if(!id.equals(destination.getFaultDetectorID()) && !destination.getState().equals(State.REMOVED)) {
+                sendMessage(destination.getFaultDetectorID(), messageType, content);
+            }
         }
     }
 
@@ -201,12 +232,12 @@ public abstract class FaultDetector {
     public abstract HashMap<String, String> getStatistics(int time);
 
     public void setNeighbours(ArrayList<String> servers, ArrayList<String> faultDetectors) {
-        myIndex = (int) Math.ceil((double)servers.size() / 2);
+        myServer = servers.get((int) Math.floor((double)servers.size() / 2));
 
-        pairInfos = new ArrayList<>(servers.size());
+        pairInfos = new HashMap<>(servers.size());
 
         for(int i = 0; i < servers.size(); i++){
-            pairInfos.add(new PairInfo(faultDetectors.get(i), servers.get(i), invulnerabilityTime));
+            pairInfos.put(servers.get(i), new PairInfo(faultDetectors.get(i), servers.get(i), invulnerabilityTime));
         }
     }
 }
