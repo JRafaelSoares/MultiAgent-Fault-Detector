@@ -49,4 +49,9 @@ public class PairInfo implements Serializable {
     public void setCurrentInvulnerabilityTime(int currentInvulnerabilityTime){
         this.currentInvulnerabilityTime = currentInvulnerabilityTime;
     }
+
+    @Override
+    public String toString() {
+        return "[" + faultDetectorID + "]" + "[" + serverID + "]: " + state + " invulnerability = " + currentInvulnerabilityTime;
+    }
 }

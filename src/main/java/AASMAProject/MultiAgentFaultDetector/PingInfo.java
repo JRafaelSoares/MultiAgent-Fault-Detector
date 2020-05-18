@@ -1,6 +1,6 @@
 package AASMAProject.MultiAgentFaultDetector;
 
-public class Ping {
+public class PingInfo {
 
     private long frequencyPing;
     private int lastPing;
@@ -8,7 +8,7 @@ public class Ping {
     private Distribution distribution;
 
 
-    public Ping(long frequencyPing, int lastPing, Distribution distribution){
+    public PingInfo(long frequencyPing, int lastPing, Distribution distribution){
         this.frequencyPing = frequencyPing;
         this.lastPing = lastPing;
         this.distribution = distribution;
@@ -36,10 +36,14 @@ public class Ping {
 
     public void addDistributionData(int time){
         distribution.addData(time - lastPing);
-        System.out.println("Data: " + (time - lastPing) + " Mean: " + distribution.getMean() + " Variance: " + distribution.getVariance());
     }
 
     public double getDistributionProbability(int waitedTime){
         return distribution.getProbability(waitedTime);
+    }
+
+    public void restart(int time){
+        waitingForPing = false;
+        lastPing = time;
     }
 }

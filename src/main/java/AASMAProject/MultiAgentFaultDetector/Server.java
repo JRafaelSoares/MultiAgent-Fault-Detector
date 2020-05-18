@@ -27,7 +27,6 @@ public class Server {
     private int minTimeAnswer;
     private int maxTimeAnswer;
     private int infectedDelay;
-    private int whenToAnswerPing;
 
     Server(String id, int minTimeAnswer, int maxTimeAnswer, int infectedDelay, NetworkSimulator networkSimulator){
         this.state = State.HEALTHY;
@@ -36,9 +35,7 @@ public class Server {
         this.minTimeAnswer = minTimeAnswer;
         this.maxTimeAnswer = maxTimeAnswer;
         this.infectedDelay = infectedDelay;
-        this.whenToAnswerPing = -1;
         this.networkSimulator = networkSimulator;
-
     }
 
     public void decide() {
@@ -85,7 +82,11 @@ public class Server {
         switch (m.getType()){
             case pingRequest:
                 Random random = new Random();
-                pingAnswerTime.replace(m.getSource(), random.nextInt((maxTimeAnswer - minTimeAnswer) + 1) + minTimeAnswer);
+                int delay = random.nextInt((maxTimeAnswer - minTimeAnswer) + 1) + minTimeAnswer;
+
+                if(Environment.DEBUG) System.out.println("[" + id + "] received ping request from " + m.getSource() + ", gonna answer in " + delay);
+
+                pingAnswerTime.replace(m.getSource(), delay);
                 break;
             default:
                 processMessage(m);
@@ -114,8 +115,6 @@ public class Server {
         }
 
         decidePing();
-
-        //Infect other servers behaviour
     }
 
     private void processMessageInfected(Message m) {
@@ -178,6 +177,8 @@ public class Server {
         switch (m.getType()){
             case removePair:
                 if(debug) System.out.println("[" + id + "] Received removal notice from " + m.getSource());
+                
+                setFaultDetectorIDs(faultDetectorIDs);
                 state = State.REMOVED;
                 break;
         }
@@ -186,7 +187,7 @@ public class Server {
     public void restart(){
         this.state = State.HEALTHY;
         this.currentInvulnerabilityTime = invulnerabilityTime;
-        this.whenToAnswerPing = -1;
+        setFaultDetectorIDs(faultDetectorIDs);
     }
 
 
@@ -210,7 +211,7 @@ public class Server {
         pingAnswerTime = new HashMap<>(faultDetectorIDs.size());
 
         for(String faultDetector : faultDetectorIDs){
-            pingAnswerTime.put(faultDetector, this.whenToAnswerPing);
+            pingAnswerTime.put(faultDetector, -1);
         }
     }
 }

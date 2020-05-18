@@ -2,12 +2,8 @@ package AASMAProject.MultiAgentFaultDetector;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
 
 public class FaultDetectorBalanced extends FaultDetector {
-
-    private boolean debug = true;
-
     private double uncertaintyPercentage = 0.1;
 
     //ping variables
@@ -17,7 +13,7 @@ public class FaultDetectorBalanced extends FaultDetector {
     private HashMap<String, Double> trust;
     private double trustThreshold;
 
-    private HashMap<String, Ping> pingInformation = new HashMap<>();
+    private HashMap<String, PingInfo> pingInformation = new HashMap<>();
 
     public FaultDetectorBalanced(String id, long pingTime, NetworkSimulator networkSimulator, Distribution.Type distributionType, double trustThreshold) {
         super(id, networkSimulator);
@@ -37,45 +33,53 @@ public class FaultDetectorBalanced extends FaultDetector {
     public boolean isInfected(int time, String server) {
         updateTrust(time, server);
 
+        if(Environment.DEBUG) System.out.println("\ttrust of " + server + " = " + trust.get(server));
+
         return trust.get(server) < trustThreshold;
     }
 
     @Override
     public void decidePing(int time, String server) {
-        Ping ping = pingInformation.get(server);
+        PingInfo pingInfo = pingInformation.get(server);
 
-        if(ping.isTimeToPing(time)){
-            ping.setWaitingForPing(true);
-            ping.setLastPing(time);
+        if(pingInfo.isTimeToPing(time)){
+            if(Environment.DEBUG) System.out.println("\tsent ping request to " + server);
+            pingInfo.setWaitingForPing(true);
+            pingInfo.setLastPing(time);
             sendMessage(server, Message.Type.pingRequest);
         }
     }
 
     @Override
     public void processPing(int time, String server) {
-        System.out.println("[" + server + "]");
-        Ping ping = pingInformation.get(server);
-        ping.addDistributionData(time);
+        PingInfo pingInfo = pingInformation.get(server);
 
-        updateTrust(time, server);
-
-        ping.setWaitingForPing(false);
-
-    }
-
-    private void updateTrust(int time, String server){
-        Ping ping = pingInformation.get(server);
-
-        if(!ping.isWaitingForPing()){
+        if(!pingInfo.isWaitingForPing()){
+            if(Environment.DEBUG) System.out.println("\tis not waiting for ping from " + server + ", ignored");
             return;
         }
 
-        int waitedTime = time - ping.getLastPing();
-        double p = ping.getDistributionProbability(waitedTime);
+        if(Environment.DEBUG) System.out.println("\tadded point " + (time - pingInfo.getLastPing()) + " to " + server);
 
-        System.out.println("[" + getId() + "]" + " p = " + p + " of " + server);
+        pingInfo.addDistributionData(time);
 
-        trust.replace(server, p * 100 * 2);
+        updateTrust(time, server);
+
+        pingInfo.setWaitingForPing(false);
+    }
+
+    private void updateTrust(int time, String server){
+        PingInfo pingInfo = pingInformation.get(server);
+
+        if(!pingInfo.isWaitingForPing()){
+            if(Environment.DEBUG) System.out.println("\tis not waiting for ping from " + server + ", no update");
+            return;
+        }
+
+        int waitedTime = time - pingInfo.getLastPing();
+        double p = pingInfo.getDistributionProbability(waitedTime);
+
+        trust.replace(server, p * 100);
     }
 
 
@@ -84,6 +88,12 @@ public class FaultDetectorBalanced extends FaultDetector {
     |       Auxiliary Methods       |
     |                               |
      \* ------------------------- */
+
+    @Override
+    public void rebootPair(int time, String server) {
+        trust.replace(server, 100.0);
+        pingInformation.get(server).restart(time);
+    }
 
     @Override
     public HashMap<String, String> getStatistics(int time) {
@@ -95,7 +105,7 @@ public class FaultDetectorBalanced extends FaultDetector {
         super.restart();
 
         for(String server : pingInformation.keySet()){
-            pingInformation.replace(server, new Ping(frequencyPing, -1, new Distribution(distributionType)));
+            pingInformation.replace(server, new PingInfo(frequencyPing, -1, new Distribution(distributionType)));
             trust.replace(server, 100.0);
         }
     }
@@ -114,7 +124,7 @@ public class FaultDetectorBalanced extends FaultDetector {
         this.trust = new HashMap<>(servers.size());
 
         for(String server : servers){
-            pingInformation.put(server, new Ping(frequencyPing, -1, new Distribution(distributionType)));
+            pingInformation.put(server, new PingInfo(frequencyPing, -1, new Distribution(distributionType)));
             trust.put(server, 100.0);
         }
     }

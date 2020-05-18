@@ -4,8 +4,6 @@ import java.util.*;
 
 public abstract class FaultDetector {
 
-    private boolean debug = true;
-
     private String id;
     private String myServer;
     private State state;
@@ -30,15 +28,15 @@ public abstract class FaultDetector {
     public void decide(int time){
         switch (state){
             case HEALTHY:
-                if(debug) System.out.println("[" + id + "]" + " healthy");
+                if(Environment.DEBUG) System.out.println("[" + id + "]" + " healthy");
                 decideHealthy(time);
                 break;
             case INFECTED:
-                if(debug) System.out.println("[" + id + "]" + " infected");
+                if(Environment.DEBUG) System.out.println("[" + id + "]" + " infected");
                 decideInfected(time);
                 break;
             case REMOVED:
-                if(debug) System.out.println("[" + id + "]" + " removed");
+                if(Environment.DEBUG) System.out.println("[" + id + "]" + " removed");
                 decideRemoved(time);
                 break;
         }
@@ -64,13 +62,15 @@ public abstract class FaultDetector {
             if(info.getState().equals(State.REMOVED)) continue;
 
             if(info.decrementAndGet() == 0 && isInfected(time, info.getServerID())){
-                if(debug) System.out.println("[" + id + "]" + " caught " + info.getServerID());
+                if(Environment.DEBUG) System.out.println("[" + id + "]" + " caught " + info.getServerID());
                 broadcast(pairInfos.values(), Message.Type.removePair, info.getServerID().getBytes());
+                rebootPair(time, info.getServerID());
                 info.setState(State.REMOVED);
 
                 if(myServer.equals(info.getServerID())){
                     sendMessage(myServer, Message.Type.removePair);
                     state = State.REMOVED;
+                    timeRemoved = 0;
                 }
             }
 
@@ -80,16 +80,17 @@ public abstract class FaultDetector {
 
     public void processMessageHealthy(int time, Message m){
         if(m.isContagious() && pairInfos.get(myServer).getCurrentInvulnerabilityTime() == 0 && new Random().nextDouble() <= probInsideInfection){
-            if(debug) System.out.println("[" + id + "]" + "infected by " + m.getSource());
+            if(Environment.DEBUG) System.out.println("[" + id + "]" + " infected by " + m.getSource());
             state = State.INFECTED;
         }
 
         switch (m.getType()){
             case pingResponse:
+                if(Environment.DEBUG) System.out.println("[" + id + "]" + " received ping response from " + m.getSource());
                 processPing(time, m.getSource());
                 break;
             default:
-                processMessage(m);
+                processMessage(time, m);
                 break;
         }
     }
@@ -97,7 +98,6 @@ public abstract class FaultDetector {
     public abstract boolean isInfected(int time, String server);
     public abstract void decidePing(int time, String server);
     public abstract void processPing(int time, String server);
-
 
      /* ------------------------- *\
     |                               |
@@ -116,7 +116,7 @@ public abstract class FaultDetector {
     }
 
     public void processMessageInfected(int time, Message m){
-        processMessage(m);
+        processMessage(time, m);
     }
 
 
@@ -132,12 +132,12 @@ public abstract class FaultDetector {
 
         if(messages != null){
             for(Message m : messages){
-                processMessageRemoved(m);
+                processMessageRemoved(time, m);
             }
         }
 
         if(++timeRemoved == timeToReboot){
-            if(debug) System.out.println("[" + id + "]" + " rebooted ");
+            if(Environment.DEBUG) System.out.println("[" + id + "]" + " rebooted ");
 
             for(PairInfo info : pairInfos.values()){
                 info.setState(State.REMOVED);
@@ -146,18 +146,27 @@ public abstract class FaultDetector {
         }
     }
 
-    public void processMessageRemoved(Message m){
+    public void processMessageRemoved(int time, Message m){
         switch(m.getType()){
             case reviveResponse:
-                if(debug) System.out.println("[" + id + "]" + " revive response from " + new String(m.getContent()));
-                pairInfos.get(new String(m.getContent())).setState(State.HEALTHY);
+                if(Environment.DEBUG) System.out.println("[" + id + "]" + " revive response from " + new String(m.getContent()));
 
-                /* revive my server */
-                sendMessage(myServer, Message.Type.reviveResponse);
+                String serverID = new String(m.getContent());
 
-                /* change my state */
-                state = State.HEALTHY;
-                pairInfos.get(myServer).setState(State.HEALTHY);
+                pairInfos.get(serverID).setState(State.HEALTHY);
+
+                rebootPair(time, serverID);
+
+                if(state.equals(State.REMOVED)){
+                    /* revive my server */
+                    sendMessage(myServer, Message.Type.reviveResponse);
+
+                    /* change my state */
+                    state = State.HEALTHY;
+                    pairInfos.get(myServer).setState(State.HEALTHY);
+
+                    rebootPair(time, myServer);
+                }
 
                 break;
         }
@@ -171,36 +180,47 @@ public abstract class FaultDetector {
     |                               |
      \* ------------------------- */
 
-    private void processMessage(Message m){
+    private void processMessage(int time, Message m){
         PairInfo info;
+        String serverID;
+
         switch (m.getType()){
             case removePair:
-                if(debug) System.out.println("[" + id + "]" + " removing infected pair " + new String(m.getContent()));
-                String serverID = new String(m.getContent());
+                serverID = new String(m.getContent());
+                if(Environment.DEBUG) System.out.println("[" + id + "]" + " removing infected pair " + serverID);
                 info = pairInfos.get(serverID);
+
                 if(info != null){
                     info.setState(State.REMOVED);
                 }
+
                 if(myServer.equals(serverID)){
                     sendMessage(myServer, Message.Type.removePair);
                     state = State.REMOVED;
+                    timeRemoved = 0;
                 }
                 break;
 
             case reviveRequest:
-                if(debug) System.out.println("[" + id + "]" + " rebooting pair " + new String(m.getContent()));
-                info = pairInfos.get(new String(m.getContent()));
+                serverID = new String(m.getContent());
+                if(Environment.DEBUG) System.out.println("[" + id + "]" + " rebooting pair " + serverID);
+                info = pairInfos.get(serverID);
                 if(info != null){
                     info.setState(State.HEALTHY);
+                    rebootPair(time, serverID);
                     sendMessage(m.getSource(), Message.Type.reviveResponse, myServer.getBytes());
                 }
                 break;
             case reviveResponse:
-                if(debug) System.out.println("[" + id + "]" + " revive response from " + m.getSource());
-                pairInfos.get(new String(m.getContent())).setState(State.HEALTHY);
+                serverID = new String(m.getContent());
+                if(Environment.DEBUG) System.out.println("[" + id + "]" + " revive response from " + m.getSource());
+                rebootPair(time, serverID);
+                pairInfos.get(serverID).setState(State.HEALTHY);
                 break;
         }
     }
+
+    public abstract void rebootPair(int time, String server);
 
     public void restart(){
         this.state = State.HEALTHY;
@@ -254,7 +274,7 @@ public abstract class FaultDetector {
     public abstract HashMap<String, String> getStatistics(int time);
 
     public void setNeighbours(ArrayList<String> servers, ArrayList<String> faultDetectors) {
-        myServer = servers.get((int) Math.floor((double)servers.size() / 2));
+        myServer = servers.get(servers.size() / 2);
 
         pairInfos = new HashMap<>(servers.size());
 
