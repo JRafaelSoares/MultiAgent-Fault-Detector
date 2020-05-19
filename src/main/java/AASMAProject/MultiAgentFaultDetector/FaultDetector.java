@@ -1,28 +1,37 @@
 package AASMAProject.MultiAgentFaultDetector;
 
+import org.apache.commons.lang3.SerializationUtils;
 import java.util.*;
+
 
 public abstract class FaultDetector {
 
     private String id;
-    private String myServer;
+    private int myServer;
+    private String myServerID;
     private State state;
+
+    private int numNeighbours;
 
     private NetworkSimulator networkSimulator;
 
-    private HashMap<String, PairInfo> pairInfos;
+    private ArrayList<PairInfo> pairInfos;
+    private HashMap<String, PairInfo> indexedPairInfos;
+    private HashMap<String, Quorum> quorums;
 
     public static int invulnerabilityTime = 100;
-    public static double probInsideInfection = 0.2;
+    public static double probInsideInfection = 0.01;
 
     //crashed variables
     private int timeToReboot = 10;
     private int timeRemoved;
 
-    public FaultDetector(String id, NetworkSimulator networkSimulator){
+    public FaultDetector(String id, NetworkSimulator networkSimulator, int numNeighbours){
         this.state = State.HEALTHY;
         this.id = id;
         this.networkSimulator = networkSimulator;
+        this.numNeighbours = numNeighbours;
+        this.quorums = new HashMap<>();
     }
 
     public void decide(int time){
@@ -58,24 +67,7 @@ public abstract class FaultDetector {
             }
         }
 
-        for(PairInfo info : pairInfos.values()){
-            if(info.getState().equals(State.REMOVED)) continue;
-
-            if(info.decrementAndGet() == 0 && isInfected(time, info.getServerID())){
-                if(Environment.DEBUG) System.out.println("[" + id + "]" + " caught " + info.getServerID());
-                broadcast(pairInfos.values(), Message.Type.removePair, info.getServerID().getBytes());
-                rebootPair(time, info.getServerID());
-                info.setState(State.REMOVED);
-
-                if(myServer.equals(info.getServerID())){
-                    sendMessage(myServer, Message.Type.removePair);
-                    state = State.REMOVED;
-                    timeRemoved = 0;
-                }
-            }
-
-            decidePing(time, info.getServerID());
-        }
+        evaluateServers(time);
     }
 
     public void processMessageHealthy(int time, Message m){
@@ -139,9 +131,9 @@ public abstract class FaultDetector {
         if(++timeRemoved == timeToReboot){
             if(Environment.DEBUG) System.out.println("[" + id + "]" + " rebooted ");
 
-            for(PairInfo info : pairInfos.values()){
+            for(PairInfo info : pairInfos){
                 info.setState(State.REMOVED);
-                sendMessage(info.getFaultDetectorID(), Message.Type.reviveRequest, myServer.getBytes());
+                sendMessage(info.getFaultDetectorID(), Message.Type.reviveRequest, myServerID.getBytes());
             }
         }
     }
@@ -153,21 +145,22 @@ public abstract class FaultDetector {
 
                 String serverID = new String(m.getContent());
 
-                pairInfos.get(serverID).setState(State.HEALTHY);
+                indexedPairInfos.get(serverID).setState(State.HEALTHY);
 
                 rebootPair(time, serverID);
 
                 if(state.equals(State.REMOVED)){
                     /* revive my server */
-                    sendMessage(myServer, Message.Type.reviveResponse);
+                    sendMessage(myServerID, Message.Type.reviveResponse);
 
                     /* change my state */
                     state = State.HEALTHY;
                     pairInfos.get(myServer).setState(State.HEALTHY);
 
-                    rebootPair(time, myServer);
+                    rebootPair(time, myServerID);
                 }
 
+                recalculateNeighbours();
                 break;
         }
 
@@ -185,50 +178,177 @@ public abstract class FaultDetector {
         String serverID;
 
         switch (m.getType()){
-            case removePair:
+            case quorumRequest:
                 serverID = new String(m.getContent());
-                if(Environment.DEBUG) System.out.println("[" + id + "]" + " removing infected pair " + serverID);
-                info = pairInfos.get(serverID);
 
-                if(info != null){
-                    info.setState(State.REMOVED);
-                }
+                boolean vote = isInfected(time, serverID);
 
-                if(myServer.equals(serverID)){
-                    sendMessage(myServer, Message.Type.removePair);
-                    state = State.REMOVED;
-                    timeRemoved = 0;
-                }
+                Quorum quorum = new Quorum(numNeighbours);
+                quorum.addVote(m.getSource(), true);
+                quorum.addVote(id, vote);
+
+                String quorumID = m.getSource() + ":" + serverID;
+                quorums.put(quorumID, quorum);
+
+                if(Environment.DEBUG) System.out.println("[" + id + "]" + " received quorum request " + quorumID + " voted " + vote);
+
+                broadcast(pairInfos, Message.Type.quorumResponse, SerializationUtils.serialize(new AbstractMap.SimpleEntry<>(quorumID, vote)));
                 break;
+            case quorumResponse:
+                AbstractMap.SimpleEntry<String, Boolean> content = SerializationUtils.deserialize(m.getContent());
 
+                Quorum q = quorums.get(content.getKey());
+
+                if(q == null){
+                    q = new Quorum(numNeighbours);
+                }
+
+                q.addVote(m.getSource(), content.getValue());
+
+                info = indexedPairInfos.get(content.getKey().split(":")[1]);
+
+                if(info.getState().equals(State.REMOVED)){
+                    quorums.remove(content.getKey());
+                    break;
+                }
+
+                if(Environment.DEBUG) System.out.println("[" + id + "]" + " received quorum " + content.getKey() + " response from " + m.getSource() + " who voted " + content.getValue());
+
+                if(q.isCompleted()){
+                    if(q.getResult()){
+                        if(Environment.DEBUG) System.out.println("[" + id + "]" + " quorum success, removing infected pair " + info.getServerID());
+
+                        if(info != null){
+                            info.setState(State.REMOVED);
+
+                            if(info.isNeighbour()) recalculateNeighbours();
+
+                            if(myServerID.equals(info.getServerID())){
+                                sendMessage(myServerID, Message.Type.removeServer);
+                                state = State.REMOVED;
+                                timeRemoved = 0;
+                            }
+                        }
+                    } else if(Environment.DEBUG) System.out.println("[" + id + "]" + " quorum failure, not removing pair " + info.getServerID());
+
+                    quorums.remove(content.getKey());
+
+                    processQuorumResults(q.getVotes());
+                }
+
+                break;
             case reviveRequest:
                 serverID = new String(m.getContent());
                 if(Environment.DEBUG) System.out.println("[" + id + "]" + " rebooting pair " + serverID);
-                info = pairInfos.get(serverID);
+                info = indexedPairInfos.get(serverID);
                 if(info != null){
                     info.setState(State.HEALTHY);
                     rebootPair(time, serverID);
-                    sendMessage(m.getSource(), Message.Type.reviveResponse, myServer.getBytes());
+                    sendMessage(m.getSource(), Message.Type.reviveResponse, myServerID.getBytes());
+                    recalculateNeighbours();
                 }
                 break;
             case reviveResponse:
                 serverID = new String(m.getContent());
                 if(Environment.DEBUG) System.out.println("[" + id + "]" + " revive response from " + m.getSource());
                 rebootPair(time, serverID);
-                pairInfos.get(serverID).setState(State.HEALTHY);
+                indexedPairInfos.get(serverID).setState(State.HEALTHY);
+                recalculateNeighbours();
                 break;
         }
     }
 
     public abstract void rebootPair(int time, String server);
+    public abstract void processQuorumResults(HashMap<String, Boolean> votes);
+
+    private void evaluateServers(int time){
+        for(PairInfo info : pairInfos){
+            if(info.getState().equals(State.REMOVED)) continue;
+
+            if(info.isNeighbour()){
+                evaluateNeighbour(time, info);
+            }
+
+            decidePing(time, info.getServerID());
+        }
+    }
+
+    private void evaluateNeighbour(int time, PairInfo info){
+        if(info.decrementAndGet() == 0 && isInfected(time, info.getServerID())){
+            if(Environment.DEBUG) System.out.println("[" + id + "]" + " caught " + info.getServerID());
+
+            /*rebootPair(time, info.getServerID());
+            info.setState(State.REMOVED);
+
+            if(myServerID.equals(info.getServerID())){
+                sendMessage(myServerID, Message.Type.removePair);
+                state = State.REMOVED;
+                timeRemoved = 0;
+            } else{
+                if(info.isNeighbour()) recalculateNeighbours();
+            }*/
+
+            createQuorum(info.getServerID());
+        }
+    }
+
+    private void createQuorum(String suspectedServerID){
+
+        Quorum quorum = new Quorum(numNeighbours);
+        String quorumID = id + ":" + suspectedServerID;
+        quorums.put(quorumID, quorum);
+
+        if(Environment.DEBUG) System.out.println("[" + id + "]" + " creating quorum " + quorumID);
+
+        PairInfo info = indexedPairInfos.get(suspectedServerID);
+
+        int serverIndex = pairInfos.indexOf(info);
+
+        // Send to suspected server
+        sendMessage(info.getFaultDetectorID(), Message.Type.quorumRequest, suspectedServerID.getBytes());
+
+        int leftNeighbourCount = 0;
+        int rightNeighbourCount = 0;
+
+        for(int i = 1; i <= pairInfos.size() / 2; i++){
+            if(i == myServer) continue;
+
+            PairInfo left = pairInfos.get(Math.floorMod(serverIndex - i, pairInfos.size()));
+            PairInfo right = pairInfos.get((serverIndex + i) % pairInfos.size());
+
+            if(!left.getState().equals(State.REMOVED) && leftNeighbourCount++ < numNeighbours / 2){
+                sendMessage(left.getFaultDetectorID(), Message.Type.quorumRequest, suspectedServerID.getBytes());
+            }
+            if(!right.getState().equals(State.REMOVED) && rightNeighbourCount++ < numNeighbours / 2){
+                sendMessage(right.getFaultDetectorID(), Message.Type.quorumRequest, suspectedServerID.getBytes());
+            }
+
+            if(leftNeighbourCount > numNeighbours / 2 && rightNeighbourCount > numNeighbours / 2) break;
+        }
+    }
+
+    private void recalculateNeighbours(){
+        int leftNeighbourCount = 0;
+        int rightNeighbourCount = 0;
+
+        for(int i = 1; i <= pairInfos.size() / 2; i++){
+            PairInfo left = pairInfos.get(Math.floorMod(myServer - i, pairInfos.size()));
+            PairInfo right = pairInfos.get((myServer + i) % pairInfos.size());
+
+            left.setNeighbour(!left.getState().equals(State.REMOVED) && leftNeighbourCount++ < numNeighbours / 2);
+            right.setNeighbour(!right.getState().equals(State.REMOVED) && rightNeighbourCount++ < numNeighbours / 2);
+        }
+    }
 
     public void restart(){
         this.state = State.HEALTHY;
 
-        for(PairInfo info : pairInfos.values()){
+        for(PairInfo info : pairInfos){
             info.setCurrentInvulnerabilityTime(invulnerabilityTime);
             info.setState(State.HEALTHY);
         }
+
+        this.quorums = new HashMap<>();
     }
 
     public void broadcast(Collection<PairInfo> destinations, Message.Type messageType){
@@ -273,13 +393,40 @@ public abstract class FaultDetector {
 
     public abstract HashMap<String, String> getStatistics(int time);
 
-    public void setNeighbours(ArrayList<String> servers, ArrayList<String> faultDetectors) {
-        myServer = servers.get(servers.size() / 2);
+    public int getNumNeighbours(){
+        return numNeighbours;
+    }
 
-        pairInfos = new HashMap<>(servers.size());
+    public ArrayList<PairInfo> getPairInfos() {
+        return pairInfos;
+    }
+
+    public void setPairs(ArrayList<String> servers, ArrayList<String> faultDetectors) {
+        pairInfos = new ArrayList<>(servers.size());
+        indexedPairInfos = new HashMap<>(servers.size());
 
         for(int i = 0; i < servers.size(); i++){
-            pairInfos.put(servers.get(i), new PairInfo(faultDetectors.get(i), servers.get(i), invulnerabilityTime));
+            String serverID = servers.get(i);
+            String faultDetectorID = faultDetectors.get(i);
+
+            if(faultDetectorID.equals(id)){
+                myServer = i;
+                myServerID = serverID;
+            }
+
+            PairInfo info = new PairInfo(faultDetectorID, serverID, invulnerabilityTime);
+
+            pairInfos.add(info);
+            indexedPairInfos.put(serverID, info);
         }
+
+        int index1 = Math.floorMod(myServer - numNeighbours / 2, servers.size());
+        int index2 = Math.floorMod(myServer + numNeighbours / 2, servers.size());
+
+        int j = index1 - 1;
+        do{
+            j = (j + 1) % servers.size();
+            pairInfos.get(j).setNeighbour(true);
+        } while(j != index2);
     }
 }

@@ -9,6 +9,8 @@ public class PairInfo implements Serializable {
 
     private State state;
 
+    private boolean isNeighbour = false;
+
     private int currentInvulnerabilityTime;
 
     public PairInfo(String faultDetectorID, String serverID, int currentInvulnerabilityTime){
@@ -48,6 +50,14 @@ public class PairInfo implements Serializable {
 
     public void setCurrentInvulnerabilityTime(int currentInvulnerabilityTime){
         this.currentInvulnerabilityTime = currentInvulnerabilityTime;
+    }
+
+    public boolean isNeighbour() {
+        return isNeighbour;
+    }
+
+    public void setNeighbour(boolean neighbour) {
+        isNeighbour = neighbour;
     }
 
     @Override

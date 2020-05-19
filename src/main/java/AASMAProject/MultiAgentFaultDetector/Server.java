@@ -21,7 +21,7 @@ public class Server {
     //crashed variables
 
     //infected variables
-    public static double probOutsideInfection = 0.01;
+    public static double probOutsideInfection = 0.005;
 
     //ping variables
     private int minTimeAnswer;
@@ -175,9 +175,9 @@ public class Server {
 
     private void processMessage(Message m){
         switch (m.getType()){
-            case removePair:
+            case removeServer:
                 if(debug) System.out.println("[" + id + "] Received removal notice from " + m.getSource());
-                
+
                 setFaultDetectorIDs(faultDetectorIDs);
                 state = State.REMOVED;
                 break;

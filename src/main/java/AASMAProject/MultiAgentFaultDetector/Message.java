@@ -7,9 +7,11 @@ public class Message {
     public enum Type{
         pingRequest,
         pingResponse,
-        removePair,
+        quorumRequest,
+        quorumResponse,
         reviveResponse,
         reviveRequest,
+        removeServer
     }
 
     private String source;

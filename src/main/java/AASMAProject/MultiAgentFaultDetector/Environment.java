@@ -4,7 +4,6 @@ import AASMAProject.Graphics.GraphicsHandler;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
 
 public class Environment {
@@ -23,42 +22,16 @@ public class Environment {
 
         for(int i=0; i<num; i++){
             Server server = new Server("S" + i, 2, 5, 3, networkSimulator);
-            FaultDetector faultDetector = new FaultDetectorBalanced("FD" + i, 10, networkSimulator, Distribution.Type.NORMAL, 1);
+            FaultDetector faultDetector = new FaultDetectorBalanced("FD" + i, 10, networkSimulator, Distribution.Type.NORMAL, 1, numNeighbours);
 
             listPair.add(new Pair(faultDetector, server));
             faultDetectorIDs.add("FD" + i);
             serverIDs.add("S" + i);
         }
 
-
-        int i = 0;
         for(Pair p : listPair){
-            int index1 = Math.floorMod(i - numNeighbours / 2, serverIDs.size());
-            int index2 = Math.floorMod(i + numNeighbours / 2, serverIDs.size());
-
-            ArrayList<String> serverNeighbours = new ArrayList<>(numNeighbours);
-            ArrayList<String> fdNeighbours = new ArrayList<>(numNeighbours);
-
-            int j = index1 - 1;
-
-            do{
-                j = (j + 1) % serverIDs.size();
-
-                serverNeighbours.add(serverIDs.get(j));
-                fdNeighbours.add(faultDetectorIDs.get(j));
-            } while(j != index2);
-
-            /*for(int j = index1; j != index2; j = (j + 1) % serverIDs.size()){
-                serverNeighbours.add(serverIDs.get(j));
-                fdNeighbours.add(faultDetectorIDs.get(j));
-
-                System.out.println("Adding " + serverIDs.get(j) + " " + faultDetectorIDs.get(j));
-            }*/
-
-            p.getFaultDetector().setNeighbours(serverNeighbours, fdNeighbours);
-            p.getServer().setFaultDetectorIDs(fdNeighbours);
-
-            i++;
+            p.getFaultDetector().setPairs(new ArrayList<>(serverIDs), new ArrayList<>(faultDetectorIDs));
+            p.getServer().setFaultDetectorIDs(new ArrayList<>(faultDetectorIDs));
         }
     }
 
@@ -72,12 +45,12 @@ public class Environment {
     }
 
     public void decision(){
-        System.out.println("\n\n\n\nt = " + currentTime + ":\n");
+        if(DEBUG) System.out.println("\n\n\n\nt = " + currentTime + ":\n");
         for(Pair p : listPair){
             p.getFaultDetector().decide(currentTime);
-            System.out.println("");
+            if(DEBUG) System.out.println("");
             p.getServer().decide();
-            System.out.println("\n");
+            if(DEBUG) System.out.println("\n");
         }
         currentTime++;
     }

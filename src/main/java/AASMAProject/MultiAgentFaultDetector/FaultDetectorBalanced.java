@@ -15,8 +15,8 @@ public class FaultDetectorBalanced extends FaultDetector {
 
     private HashMap<String, PingInfo> pingInformation = new HashMap<>();
 
-    public FaultDetectorBalanced(String id, long pingTime, NetworkSimulator networkSimulator, Distribution.Type distributionType, double trustThreshold) {
-        super(id, networkSimulator);
+    public FaultDetectorBalanced(String id, long pingTime, NetworkSimulator networkSimulator, Distribution.Type distributionType, double trustThreshold, int numNeighbours) {
+        super(id, networkSimulator, numNeighbours);
         this.frequencyPing = pingTime;
         this.distributionType = distributionType;
         this.trustThreshold = trustThreshold;
@@ -96,6 +96,11 @@ public class FaultDetectorBalanced extends FaultDetector {
     }
 
     @Override
+    public void processQuorumResults(HashMap<String, Boolean> votes) {
+
+    }
+
+    @Override
     public HashMap<String, String> getStatistics(int time) {
         return null;
     }
@@ -118,8 +123,8 @@ public class FaultDetectorBalanced extends FaultDetector {
      \* ------------------------- */
 
     @Override
-    public void setNeighbours(ArrayList<String> servers, ArrayList<String> faultDetectors) {
-        super.setNeighbours(servers, faultDetectors);
+    public void setPairs(ArrayList<String> servers, ArrayList<String> faultDetectors) {
+        super.setPairs(servers, faultDetectors);
 
         this.trust = new HashMap<>(servers.size());
 
