@@ -9,9 +9,11 @@ public class Message {
         pingResponse,
         quorumRequest,
         quorumResponse,
-        reviveResponse,
+        removeServer,
         reviveRequest,
-        removeServer
+        reviveResponse,
+        getInfectedRequest,
+        getInfectedResponse
     }
 
     private String source;

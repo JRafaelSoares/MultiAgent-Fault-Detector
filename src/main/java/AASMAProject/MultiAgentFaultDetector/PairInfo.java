@@ -11,15 +11,11 @@ public class PairInfo implements Serializable {
 
     private boolean isNeighbour = false;
 
-    private int currentInvulnerabilityTime;
-
-    public PairInfo(String faultDetectorID, String serverID, int currentInvulnerabilityTime){
+    public PairInfo(String faultDetectorID, String serverID){
         this.faultDetectorID = faultDetectorID;
         this.serverID = serverID;
 
         this.state = State.HEALTHY;
-
-        this.currentInvulnerabilityTime = currentInvulnerabilityTime;
     }
 
 
@@ -39,19 +35,6 @@ public class PairInfo implements Serializable {
         this.state = state;
     }
 
-    public int decrementAndGet(){
-        currentInvulnerabilityTime = currentInvulnerabilityTime == 0 ? 0 : currentInvulnerabilityTime - 1;
-        return currentInvulnerabilityTime;
-    }
-
-    public int getCurrentInvulnerabilityTime(){
-        return currentInvulnerabilityTime;
-    }
-
-    public void setCurrentInvulnerabilityTime(int currentInvulnerabilityTime){
-        this.currentInvulnerabilityTime = currentInvulnerabilityTime;
-    }
-
     public boolean isNeighbour() {
         return isNeighbour;
     }
@@ -62,6 +45,6 @@ public class PairInfo implements Serializable {
 
     @Override
     public String toString() {
-        return "[" + faultDetectorID + "]" + "[" + serverID + "]: " + state + " invulnerability = " + currentInvulnerabilityTime;
+        return "[" + faultDetectorID + "]" + "[" + serverID + "]: " + state;
     }
 }

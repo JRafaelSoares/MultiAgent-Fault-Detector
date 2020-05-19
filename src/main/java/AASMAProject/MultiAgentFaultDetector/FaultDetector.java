@@ -1,7 +1,10 @@
 package AASMAProject.MultiAgentFaultDetector;
 
 import org.apache.commons.lang3.SerializationUtils;
+
 import java.util.*;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 
 
 public abstract class FaultDetector {
@@ -13,14 +16,17 @@ public abstract class FaultDetector {
 
     private int numNeighbours;
 
+    private Random random = new Random();
+
     private NetworkSimulator networkSimulator;
 
     private ArrayList<PairInfo> pairInfos;
     private HashMap<String, PairInfo> indexedPairInfos;
     private HashMap<String, Quorum> quorums;
 
-    public static int invulnerabilityTime = 100;
-    public static double probInsideInfection = 0.01;
+    private boolean isInvulnerable = true;
+
+    public static double probInsideInfection = 0.1;
 
     //crashed variables
     private int timeToReboot = 10;
@@ -34,7 +40,7 @@ public abstract class FaultDetector {
         this.quorums = new HashMap<>();
     }
 
-    public void decide(int time){
+    public void decide(int time, CountDownLatch numProcessing){
         switch (state){
             case HEALTHY:
                 if(Environment.DEBUG) System.out.println("[" + id + "]" + " healthy");
@@ -49,6 +55,25 @@ public abstract class FaultDetector {
                 decideRemoved(time);
                 break;
         }
+
+        numProcessing.countDown();
+    }
+
+    public synchronized void processMessage(int time, Message m){
+        switch (state){
+            case HEALTHY:
+                if(Environment.DEBUG) System.out.println("[" + id + "]" + " healthy");
+                processMessageHealthy(time, m);
+                break;
+            case INFECTED:
+                if(Environment.DEBUG) System.out.println("[" + id + "]" + " infected");
+                processMessageInfected(time, m);
+                break;
+            case REMOVED:
+                if(Environment.DEBUG) System.out.println("[" + id + "]" + " removed");
+                processMessageRemoved(time, m);
+                break;
+        }
     }
 
 
@@ -59,21 +84,15 @@ public abstract class FaultDetector {
      \* ------------------------- */
 
     public void decideHealthy(int time){
-        ArrayList<Message> messages = networkSimulator.readBuffer(id);
-
-        if(messages != null) {
-            for(Message m : messages){
-                processMessageHealthy(time, m);
-            }
-        }
-
         evaluateServers(time);
     }
 
     public void processMessageHealthy(int time, Message m){
-        if(m.isContagious() && pairInfos.get(myServer).getCurrentInvulnerabilityTime() == 0 && new Random().nextDouble() <= probInsideInfection){
+        if(m.isContagious() && random.nextDouble() <= probInsideInfection){
             if(Environment.DEBUG) System.out.println("[" + id + "]" + " infected by " + m.getSource());
             state = State.INFECTED;
+            pairInfos.get(myServer).setState(State.INFECTED);
+            sendMessage(m.getSource(), Message.Type.getInfectedRequest, myServerID.getBytes());
         }
 
         switch (m.getType()){
@@ -82,7 +101,7 @@ public abstract class FaultDetector {
                 processPing(time, m.getSource());
                 break;
             default:
-                processMessage(time, m);
+                processGeneralMessage(time, m);
                 break;
         }
     }
@@ -97,18 +116,39 @@ public abstract class FaultDetector {
     |                               |
      \* ------------------------- */
 
-    public void decideInfected(int time){
-        ArrayList<Message> messages = networkSimulator.readBuffer(id);
-
-        if(messages != null){
-            for(Message m : messages){
-                processMessageInfected(time, m);
-            }
-        }
-    }
+    public void decideInfected(int time){}
 
     public void processMessageInfected(int time, Message m){
-        processMessage(time, m);
+        switch (m.getType()){
+            case getInfectedRequest:
+                if(Environment.DEBUG) System.out.println("[" + id + "]" + " received infected request from " + m.getSource());
+
+                String server = new String(m.getContent());
+
+                PairInfo info = indexedPairInfos.get(server);
+
+                info.setState(State.INFECTED);
+
+                sendMessage(m.getSource(), Message.Type.getInfectedResponse, SerializationUtils.serialize(pairInfos));
+                break;
+            case getInfectedResponse:
+                ArrayList<PairInfo> infectedInfo = SerializationUtils.deserialize(m.getContent());
+
+                if(Environment.DEBUG) System.out.println("[" + id + "]" + " received infected response from " + m.getSource());
+
+                for(int i = 0; i < infectedInfo.size(); i++){
+                    PairInfo currentInfo = pairInfos.get(i);
+                    PairInfo newInfo = infectedInfo.get(i);
+
+                    if(currentInfo.getState().equals(State.HEALTHY) && newInfo.getState().equals(State.INFECTED)){
+                        currentInfo.setState(State.INFECTED);
+                    }
+                }
+
+                break;
+            default:
+                processGeneralMessage(time, m);
+        }
     }
 
 
@@ -119,15 +159,6 @@ public abstract class FaultDetector {
      \* ------------------------- */
 
     public void decideRemoved(int time){
-
-        ArrayList<Message> messages = networkSimulator.readBuffer(id);
-
-        if(messages != null){
-            for(Message m : messages){
-                processMessageRemoved(time, m);
-            }
-        }
-
         if(++timeRemoved == timeToReboot){
             if(Environment.DEBUG) System.out.println("[" + id + "]" + " rebooted ");
 
@@ -173,7 +204,7 @@ public abstract class FaultDetector {
     |                               |
      \* ------------------------- */
 
-    private void processMessage(int time, Message m){
+    private void processGeneralMessage(int time, Message m){
         PairInfo info;
         String serverID;
 
@@ -181,7 +212,15 @@ public abstract class FaultDetector {
             case quorumRequest:
                 serverID = new String(m.getContent());
 
-                boolean vote = isInfected(time, serverID);
+                boolean vote;
+
+                if(state.equals(State.INFECTED)){
+                    info = indexedPairInfos.get(serverID);
+                    vote = !info.getState().equals(State.INFECTED);
+                }
+                else{
+                    vote = isInfected(time, serverID);
+                }
 
                 Quorum quorum = new Quorum(numNeighbours);
                 quorum.addVote(m.getSource(), true);
@@ -274,20 +313,8 @@ public abstract class FaultDetector {
     }
 
     private void evaluateNeighbour(int time, PairInfo info){
-        if(info.decrementAndGet() == 0 && isInfected(time, info.getServerID())){
+        if(!isInvulnerable && isInfected(time, info.getServerID())){
             if(Environment.DEBUG) System.out.println("[" + id + "]" + " caught " + info.getServerID());
-
-            /*rebootPair(time, info.getServerID());
-            info.setState(State.REMOVED);
-
-            if(myServerID.equals(info.getServerID())){
-                sendMessage(myServerID, Message.Type.removePair);
-                state = State.REMOVED;
-                timeRemoved = 0;
-            } else{
-                if(info.isNeighbour()) recalculateNeighbours();
-            }*/
-
             createQuorum(info.getServerID());
         }
     }
@@ -343,8 +370,9 @@ public abstract class FaultDetector {
     public void restart(){
         this.state = State.HEALTHY;
 
+        this.isInvulnerable = true;
+
         for(PairInfo info : pairInfos){
-            info.setCurrentInvulnerabilityTime(invulnerabilityTime);
             info.setState(State.HEALTHY);
         }
 
@@ -368,11 +396,11 @@ public abstract class FaultDetector {
     }
 
     public void sendMessage(String destination, Message.Type messageType){
-        networkSimulator.writeBuffer(destination, new Message(id, destination, messageType, state.equals(State.INFECTED)));
+        networkSimulator.sendMessage(destination, new Message(id, destination, messageType, state.equals(State.INFECTED)));
     }
 
     public void sendMessage(String destination, Message.Type messageType, byte[] content){
-        networkSimulator.writeBuffer(destination, new Message(id, destination, messageType, state.equals(State.INFECTED), content));
+        networkSimulator.sendMessage(destination, new Message(id, destination, messageType, state.equals(State.INFECTED), content));
     }
 
 
@@ -397,6 +425,10 @@ public abstract class FaultDetector {
         return numNeighbours;
     }
 
+    public void setInvulnerable(boolean invulnerable) {
+        isInvulnerable = invulnerable;
+    }
+
     public ArrayList<PairInfo> getPairInfos() {
         return pairInfos;
     }
@@ -414,7 +446,7 @@ public abstract class FaultDetector {
                 myServerID = serverID;
             }
 
-            PairInfo info = new PairInfo(faultDetectorID, serverID, invulnerabilityTime);
+            PairInfo info = new PairInfo(faultDetectorID, serverID);
 
             pairInfos.add(info);
             indexedPairInfos.put(serverID, info);
