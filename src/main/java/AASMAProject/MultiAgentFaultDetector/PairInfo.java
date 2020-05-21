@@ -47,4 +47,16 @@ public class PairInfo implements Serializable {
     public String toString() {
         return "[" + faultDetectorID + "]" + "[" + serverID + "]: " + state;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if(obj instanceof PairInfo){
+            PairInfo info = (PairInfo) obj;
+            if(info.getFaultDetectorID().equals(this.faultDetectorID) || info.getServerID().equals(this.serverID)){
+                return true;
+            }
+        }
+
+        return false;
+    }
 }

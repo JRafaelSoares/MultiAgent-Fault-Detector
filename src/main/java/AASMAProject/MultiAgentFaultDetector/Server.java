@@ -1,24 +1,28 @@
 package AASMAProject.MultiAgentFaultDetector;
 
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Random;
 
 
 public class Server {
-
-    private boolean debug = true;
 
     private String id;
     private State state;
     private NetworkSimulator networkSimulator;
 
     private Random random = new Random();
+    private double probInsideInfection = 0.01;
 
     //ping variables
     private int minTimeAnswer;
     private int maxTimeAnswer;
     private int infectedDelay;
+    private int workFrequency = 5;
+
+    private String leftNeighbour;
+    private String rightNeighbour;
+
+    private int lastWork = 0;
 
     Server(String id, int minTimeAnswer, int maxTimeAnswer, int infectedDelay, NetworkSimulator networkSimulator){
         this.state = State.HEALTHY;
@@ -33,9 +37,16 @@ public class Server {
         switch (state){
             case HEALTHY:
                 processMessageHealthy(m);
+
+                if(time - lastWork >= workFrequency){
+                    sendWorkRequest();
+                    lastWork = time;
+                }
+
                 break;
             case INFECTED:
-                processMessageInfected(m);
+                processMessageInfected(time, m);
+                //System.out.println("[" + id + "]" + " infected network: " + Arrays.toString(infected.toArray()));
                 break;
             case REMOVED:
                 processMessageRemoved(m);
@@ -45,7 +56,7 @@ public class Server {
 
     public void infect(){
         state = State.INFECTED;
-        Environment.numInfected.incrementAndGet();
+        InfectedNetwork.register(id);
     }
 
 
@@ -56,6 +67,12 @@ public class Server {
     \* ------------------------- */
 
     private void processMessageHealthy(Message m){
+        if(m.isContagious() && random.nextDouble() <= probInsideInfection){
+            if(Environment.DEBUG) System.out.println("[" + id + "]" + " infected by " + m.getSource());
+            state = State.INFECTED;
+            InfectedNetwork.register(id);
+        }
+
         switch (m.getType()){
             case pingRequest:
                 Random random = new Random();
@@ -63,12 +80,17 @@ public class Server {
 
                 if(Environment.DEBUG) System.out.println("[" + id + "] received ping request from " + m.getSource() + ", gonna answer in " + delay);
 
-                networkSimulator.sendMessage(m.getSource(), new Message(id, m.getSource(), Message.Type.pingResponse, state.equals(State.INFECTED)), delay);
+                sendMessage(m.getSource(), Message.Type.pingResponse, delay);
                 break;
             default:
                 processMessage(m);
                 break;
         }
+    }
+
+    private void sendWorkRequest(){
+        sendMessage(leftNeighbour, Message.Type.workRequest, 0);
+        sendMessage(rightNeighbour, Message.Type.workRequest, 0);
     }
 
 
@@ -78,12 +100,12 @@ public class Server {
     |                               |
      \* ------------------------- */
 
-    private void processMessageInfected(Message m) {
+    private void processMessageInfected(int time, Message m) {
         switch (m.getType()){
             //Ping Response
             case pingRequest:
                 int delay = random.nextInt((maxTimeAnswer - minTimeAnswer) + 1) + minTimeAnswer + infectedDelay;
-                networkSimulator.sendMessage(m.getSource(), new Message(id, m.getSource(), Message.Type.pingResponse, state.equals(State.INFECTED)), delay);
+                sendMessage(m.getSource(), Message.Type.pingResponse, delay);
                 break;
             default:
                 processMessage(m);
@@ -116,14 +138,48 @@ public class Server {
     private void processMessage(Message m){
         switch (m.getType()){
             case removeServer:
-                if(debug) System.out.println("[" + id + "] Received removal notice from " + m.getSource());
+                if(Environment.DEBUG) System.out.println("[" + id + "] Received removal notice from " + m.getSource());
+
+                if(state.equals(State.INFECTED)){
+                    InfectedNetwork.deregister(id);
+                }
+
                 state = State.REMOVED;
+
+                break;
+            case workRequest:
+                if(Environment.DEBUG) System.out.println("[" + id + "] Received work request from " + m.getSource());
+
+                sendMessage(m.getSource(), Message.Type.workResponse, 0);
+
+                break;
+            case setLeftNeighbour:
+                setLeftNeighbour(new String(m.getContent()));
+                break;
+            case setRightNeighbour:
+                setRightNeighbour(new String(m.getContent()));
                 break;
         }
     }
 
     public void restart(){
         this.state = State.HEALTHY;
+    }
+
+    public void sendMessage(String destination, Message.Type messageType, int delay){
+        networkSimulator.sendMessage(destination, new Message(id, destination, messageType, state.equals(State.INFECTED)), delay);
+    }
+
+    public void sendMessage(String destination, Message.Type messageType, byte[] content, int delay){
+        networkSimulator.sendMessage(destination, new Message(id, destination, messageType, state.equals(State.INFECTED), content), delay);
+    }
+
+    public void sendAdminMessage(String destination, Message.Type messageType){
+        networkSimulator.sendAdminMessage(destination, new Message(id, destination, messageType, state.equals(State.INFECTED)));
+    }
+
+    public void sendAdminMessage(String destination, Message.Type messageType, byte[] content){
+        networkSimulator.sendAdminMessage(destination, new Message(id, destination, messageType, state.equals(State.INFECTED), content));
     }
 
 
@@ -139,5 +195,13 @@ public class Server {
 
     public State getState(){
         return state;
+    }
+
+    public void setLeftNeighbour(String leftNeighbour){
+        this.leftNeighbour = leftNeighbour;
+    }
+
+    public void setRightNeighbour(String rightNeighbour) {
+        this.rightNeighbour = rightNeighbour;
     }
 }

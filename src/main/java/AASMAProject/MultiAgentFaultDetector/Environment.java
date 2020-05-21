@@ -7,22 +7,22 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class Environment {
     private int currentTime;
     private ArrayList<Pair> listPair;
-    private int numNeighbours = 5;
+    private ArrayList<String> faultDetectorIDs;
+    private int quorumSize = 5;
 
-    private int invulnerabilityTime = 100;
+    private int invulnerabilityTime = 200;
     private int currentInvulnerabilityTime = invulnerabilityTime;
 
     private double probOutsideInfection = 0.05;
     private Random random = new Random();
 
-    public static AtomicInteger numInfected = new AtomicInteger(0);
-
     private CountDownLatch numFinished;
+    private ReentrantLock deciding = new ReentrantLock();
     private NetworkSimulator networkSimulator;
 
     public static final boolean DEBUG = true;
@@ -30,14 +30,14 @@ public class Environment {
     public Environment(int num){
         listPair = new ArrayList<>(num);
         currentTime = 0;
-        ArrayList<String> faultDetectorIDs = new ArrayList<>();
+        faultDetectorIDs = new ArrayList<>();
         ArrayList<String> serverIDs = new ArrayList<>();
 
         networkSimulator = new NetworkSimulator();
 
-        for(int i=0; i<num; i++){
+        for(int i = 0; i < num; i++){
             Server server = new Server("S" + i, 2, 5, 3, networkSimulator);
-            FaultDetector faultDetector = new FaultDetectorBalanced("FD" + i, 10, networkSimulator, Distribution.Type.NORMAL, 1, numNeighbours);
+            FaultDetector faultDetector = new FaultDetectorBalanced("FD" + i, 20, networkSimulator, Distribution.Type.NORMAL, 1, quorumSize);
 
             listPair.add(new Pair(faultDetector, server));
             faultDetectorIDs.add("FD" + i);
@@ -47,13 +47,19 @@ public class Environment {
             networkSimulator.addStub(server.getId(), server::processMessage);
         }
 
-        for(Pair p : listPair){
+        for(int i = 0; i < num; i++){
+            Pair p = listPair.get(i);
             p.getFaultDetector().setPairs(new ArrayList<>(serverIDs), new ArrayList<>(faultDetectorIDs));
-            //p.getServer().setFaultDetectorIDs(new ArrayList<>(faultDetectorIDs));
+            p.getServer().setLeftNeighbour(serverIDs.get(Math.floorMod(i - 1, num)));
+            p.getServer().setRightNeighbour(serverIDs.get(Math.floorMod(i + 1, num)));
         }
+
+        networkSimulator.setNetworkLayout(faultDetectorIDs, serverIDs);
     }
 
     public void restart(){
+        deciding.lock();
+
         currentTime = 0;
 
         currentInvulnerabilityTime = invulnerabilityTime;
@@ -63,7 +69,9 @@ public class Environment {
             p.getServer().restart();
         }
 
-        numInfected.set(0);
+        InfectedNetwork.clear();
+
+        deciding.unlock();
     }
 
     private void startInfection(){
@@ -76,7 +84,7 @@ public class Environment {
         }
 
         if(currentInvulnerabilityTime <= 0){
-            if(numInfected.get() == 0 && random.nextDouble() <= probOutsideInfection){
+            if(InfectedNetwork.getNumInfected() == 0 && random.nextDouble() <= probOutsideInfection){
                 int toBeInfected = random.nextInt(listPair.size());
 
                 listPair.get(toBeInfected).getServer().infect();
@@ -84,7 +92,9 @@ public class Environment {
         } else currentInvulnerabilityTime--;
     }
 
-    public void decision(){
+    public boolean decision(){
+        deciding.lock();
+
         numFinished = new CountDownLatch(listPair.size());
 
         if(DEBUG) System.out.println("\n\n\n\nt = " + currentTime + ":\n");
@@ -104,6 +114,12 @@ public class Environment {
 
         currentTime++;
         networkSimulator.tick();
+
+        boolean result = InfectedNetwork.checkInfectedWin(faultDetectorIDs, quorumSize);
+
+        deciding.unlock();
+
+        return result;
     }
 
     public FaultDetectorStatistics getFaultDetectorStatistics(String id){

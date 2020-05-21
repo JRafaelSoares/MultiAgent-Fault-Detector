@@ -12,8 +12,10 @@ public class Message {
         removeServer,
         reviveRequest,
         reviveResponse,
-        getInfectedRequest,
-        getInfectedResponse
+        workRequest,
+        workResponse,
+        setLeftNeighbour,
+        setRightNeighbour
     }
 
     private String source;

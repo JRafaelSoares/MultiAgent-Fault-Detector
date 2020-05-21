@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class FaultDetectorBalanced extends FaultDetector {
-    private double uncertaintyPercentage = 0.1;
 
     //ping variables
     private long frequencyPing;
