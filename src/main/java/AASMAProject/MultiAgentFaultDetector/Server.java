@@ -17,19 +17,20 @@ public class Server {
     private int minTimeAnswer;
     private int maxTimeAnswer;
     private int infectedDelay;
-    private int workFrequency = 5;
+    private int workFrequency;
 
     private String leftNeighbour;
     private String rightNeighbour;
 
     private int lastWork = 0;
 
-    Server(String id, int minTimeAnswer, int maxTimeAnswer, int infectedDelay, NetworkSimulator networkSimulator){
+    Server(String id, int minTimeAnswer, int maxTimeAnswer, int infectedDelay, int workFrequency, NetworkSimulator networkSimulator){
         this.state = State.HEALTHY;
         this.id = id;
         this.minTimeAnswer = minTimeAnswer;
         this.maxTimeAnswer = maxTimeAnswer;
         this.infectedDelay = infectedDelay;
+        this.workFrequency = workFrequency;
         this.networkSimulator = networkSimulator;
     }
 

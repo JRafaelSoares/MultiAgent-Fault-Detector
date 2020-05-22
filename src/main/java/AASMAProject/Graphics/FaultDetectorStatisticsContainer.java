@@ -103,7 +103,7 @@ public class FaultDetectorStatisticsContainer extends Stage {
 
         statisticsDialogPane.setTop(topPane);
 
-        statisticsDialogPane.getStyleClass().add("modal-dialog");
+        statisticsDialogPane.getStyleClass().add("statistics-dialog");
 
         Scene statisticsScene = new Scene(statisticsDialogPane, Color.TRANSPARENT);
 

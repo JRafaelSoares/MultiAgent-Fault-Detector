@@ -13,8 +13,12 @@
 
     <properties>
         <mainclass>AASMAProject.MultiAgentFaultDetector.Environment</mainclass>
+        <mainclassStatistics>AASMAProject.MultiAgentFaultDetector.RunStatistics</mainclassStatistics>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <exec-maven-plugin.version>1.6.0</exec-maven-plugin.version>
+
+        <statisticsProperties>defaultStatistics</statisticsProperties>
+        <agentType>baseline</agentType>
     </properties>
 
     <dependencies>
@@ -51,16 +55,22 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <version>3.2.0</version>
-                <configuration>
-                    <archive>
-                        <manifest>
-                            <mainClass>${mainclass}</mainClass>
-                        </manifest>
-                    </archive>
-                </configuration>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>properties-maven-plugin</artifactId>
+                <version>1.0.0</version>
+                <executions>
+                    <execution>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>read-project-properties</goal>
+                        </goals>
+                        <configuration>
+                            <files>
+                                <file>src/main/resources/${statisticsProperties}.properties</file>
+                            </files>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -68,9 +78,38 @@
                 <version>${exec-maven-plugin.version}</version>
                 <executions>
                     <execution>
+                        <id>graphics</id>
                         <goals>
                             <goal>java</goal>
                         </goals>
+                    </execution>
+                    <execution>
+                        <id>statistics</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>${mainclassStatistics}</mainClass>
+                            <arguments>
+                                <argument>${runs}</argument>
+                                <argument>${ticksPerRun}</argument>
+
+                                <argument>${numPairs}</argument>
+                                <argument>${quorumSize}</argument>
+                                <argument>${invulnerabilityTime}</argument>
+
+                                <argument>${server.minTimeToAnswer}</argument>
+                                <argument>${server.maxTimeToAnswer}</argument>
+                                <argument>${server.infectedDelay}</argument>
+                                <argument>${server.workFrequency}</argument>
+                                <argument>${server.probInsideInfection}</argument>
+
+                                <argument>${fd.probInsideInfection}</argument>
+
+                                <argument>${probOutsideInfection}</argument>
+                                <argument>${agentType}</argument>
+                            </arguments>
+                        </configuration>
                     </execution>
                 </executions>
                 <configuration>

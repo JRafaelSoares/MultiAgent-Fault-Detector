@@ -22,14 +22,18 @@ import javafx.stage.StageStyle;
 import javafx.util.Duration;
 import javafx.util.Pair;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class GraphicsHandler extends Application {
 
     private Timeline timeline;
     private FaultDetectorStatisticsContainer statisticsDialog;
+    private InfectedWinPopup winPopup;
 
     private static final String HEALTHY_STYLE = "-fx-stroke: green;";
     private static final String CRASHED_STYLE = "-fx-stroke: red;";
@@ -94,7 +98,42 @@ public class GraphicsHandler extends Application {
             step.set(Integer.parseInt(usernamePassword.getValue()));
         });
 
-        Environment environment = new Environment(numPairs.get());
+        int quorumSize = 5;
+        int invulnerabilityTime = 200;
+        double probInsideInfectionServer = 0.01;
+        double probInsideInfectionFD = 0.01;
+        double probOutsideInfection = 0.05;
+        int serverMinTimeToAnswer = 2;
+        int serverMaxTimeToAnswer = 5;
+        int infectedDelay = 3;
+        int workFrequency = 5;
+        String agentType = "baseline";
+
+        Properties agentProperties = new Properties();
+        ClassLoader loader = Thread.currentThread().getContextClassLoader();
+
+        try {
+            agentProperties.load(getClass().getResourceAsStream("../../agents/" + agentType + ".properties"));
+        } catch (IOException | NullPointerException e) {
+            System.out.println("Couldn't load agent properties file");
+            e.printStackTrace();
+            return;
+        }
+
+        Environment environment = new Environment(
+                numPairs.get(),
+                quorumSize,
+                invulnerabilityTime,
+                probInsideInfectionServer,
+                probInsideInfectionFD,
+                probOutsideInfection,
+                serverMinTimeToAnswer,
+                serverMaxTimeToAnswer,
+                workFrequency,
+                infectedDelay,
+                agentType,
+                agentProperties
+        );
 
         Graph<String, String> g = buildGraph(numPairs.get());
 
@@ -143,22 +182,17 @@ public class GraphicsHandler extends Application {
 
         Stage stage = new Stage(StageStyle.DECORATED);
         stage.setTitle("Multi-Agent Fault Detector");
-        stage.setMinHeight(500);
-        stage.setMinWidth(800);
         stage.setScene(scene);
         stage.show();
 
-        statisticsDialog = new FaultDetectorStatisticsContainer(stage);
+        stage.setMinHeight(stage.getHeight());
+        stage.setMinWidth(stage.getWidth());
 
-        /*
-        IMPORTANT: Must call init() after scene is displayed so we can have width and height values
-        to initially place the vertices according to the placement strategy
-        */
         graphView.init();
 
-        /*
-        Bellow you can see how to attach actions for when vertices and edges are double clicked
-         */
+        statisticsDialog = new FaultDetectorStatisticsContainer(stage);
+        winPopup = new InfectedWinPopup(stage, graphContainer, stage.getWidth(), stage.getHeight());
+
         graphView.setVertexDoubleClickAction(graphVertex -> {
             String id = graphVertex.getUnderlyingVertex().element();
 
@@ -168,9 +202,7 @@ public class GraphicsHandler extends Application {
         });
 
         graphView.setEdgeDoubleClickAction(graphEdge -> {
-            //System.out.println("Edge contains element: " + graphEdge.getUnderlyingEdge().element());
-            //dynamically change the style when clicked
-            //graphEdge.setStyle("-fx-stroke: black; -fx-stroke-width: 2;");
+            //TODO- Add dialog to show messages currently being sent in that connection
         });
     }
 
@@ -201,7 +233,13 @@ public class GraphicsHandler extends Application {
     }
 
     private void updateEnvironment(Environment environment, int numPairs, SmartGraphPanel<String, String> graphView, GraphContainerWithControlPanel graphContainer){
-        environment.decision();
+        boolean infectedWin = environment.decision();
+
+        if(infectedWin){
+            winPopup.showPopup();
+            timeline.stop();
+        }
+
         updateInterface(environment, numPairs, graphView, graphContainer);
     }
 

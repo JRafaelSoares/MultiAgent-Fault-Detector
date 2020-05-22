@@ -2,10 +2,7 @@ package AASMAProject.MultiAgentFaultDetector;
 
 import AASMAProject.Graphics.GraphicsHandler;
 
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -13,31 +10,38 @@ public class Environment {
     private int currentTime;
     private ArrayList<Pair> listPair;
     private ArrayList<String> faultDetectorIDs;
-    private int quorumSize = 5;
+    private int quorumSize;
 
-    private int invulnerabilityTime = 200;
-    private int currentInvulnerabilityTime = invulnerabilityTime;
+    private int invulnerabilityTime;
+    private int currentInvulnerabilityTime;
 
-    private double probOutsideInfection = 0.05;
+    private double probOutsideInfection;
     private Random random = new Random();
 
     private CountDownLatch numFinished;
     private ReentrantLock deciding = new ReentrantLock();
     private NetworkSimulator networkSimulator;
 
+    private boolean infectedWin = false;
+
     public static final boolean DEBUG = true;
 
-    public Environment(int num){
-        listPair = new ArrayList<>(num);
+    public Environment(int numPairs, int quorumSize, int invulnerabilityTime, double probInsideInfectionServer, double probInsideInfectionFD, double probOutsideInfection, int serverMinTimeToAnswer, int serverMaxTimeToAnswer, int infectedDelay, int workFrequency, String agentType, Properties agentProperties){
+        this.quorumSize = quorumSize;
+        this.invulnerabilityTime = invulnerabilityTime;
+        this.currentInvulnerabilityTime = invulnerabilityTime;
+        this.probOutsideInfection = probOutsideInfection;
+
+        listPair = new ArrayList<>(numPairs);
         currentTime = 0;
         faultDetectorIDs = new ArrayList<>();
         ArrayList<String> serverIDs = new ArrayList<>();
 
         networkSimulator = new NetworkSimulator();
 
-        for(int i = 0; i < num; i++){
-            Server server = new Server("S" + i, 2, 5, 3, networkSimulator);
-            FaultDetector faultDetector = new FaultDetectorBalanced("FD" + i, 20, networkSimulator, Distribution.Type.NORMAL, 1, quorumSize);
+        for(int i = 0; i < numPairs; i++){
+            Server server = new Server("S" + i, serverMinTimeToAnswer, serverMaxTimeToAnswer, infectedDelay, workFrequency, networkSimulator);
+            FaultDetector faultDetector = FaultDetector.getAgentInstance(agentType, "FD" + i, networkSimulator, quorumSize, agentProperties);
 
             listPair.add(new Pair(faultDetector, server));
             faultDetectorIDs.add("FD" + i);
@@ -47,11 +51,11 @@ public class Environment {
             networkSimulator.addStub(server.getId(), server::processMessage);
         }
 
-        for(int i = 0; i < num; i++){
+        for(int i = 0; i < numPairs; i++){
             Pair p = listPair.get(i);
             p.getFaultDetector().setPairs(new ArrayList<>(serverIDs), new ArrayList<>(faultDetectorIDs));
-            p.getServer().setLeftNeighbour(serverIDs.get(Math.floorMod(i - 1, num)));
-            p.getServer().setRightNeighbour(serverIDs.get(Math.floorMod(i + 1, num)));
+            p.getServer().setLeftNeighbour(serverIDs.get(Math.floorMod(i - 1, numPairs)));
+            p.getServer().setRightNeighbour(serverIDs.get(Math.floorMod(i + 1, numPairs)));
         }
 
         networkSimulator.setNetworkLayout(faultDetectorIDs, serverIDs);
@@ -70,6 +74,8 @@ public class Environment {
         }
 
         InfectedNetwork.clear();
+
+        infectedWin = false;
 
         deciding.unlock();
     }
@@ -95,6 +101,8 @@ public class Environment {
     public boolean decision(){
         deciding.lock();
 
+        if(infectedWin) return true;
+
         numFinished = new CountDownLatch(listPair.size());
 
         if(DEBUG) System.out.println("\n\n\n\nt = " + currentTime + ":\n");
@@ -115,11 +123,11 @@ public class Environment {
         currentTime++;
         networkSimulator.tick();
 
-        boolean result = InfectedNetwork.checkInfectedWin(faultDetectorIDs, quorumSize);
+        infectedWin = InfectedNetwork.checkInfectedWin(faultDetectorIDs, quorumSize);
 
         deciding.unlock();
 
-        return result;
+        return infectedWin;
     }
 
     public FaultDetectorStatistics getFaultDetectorStatistics(String id){

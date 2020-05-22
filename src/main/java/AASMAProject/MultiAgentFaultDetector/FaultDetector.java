@@ -33,6 +33,23 @@ public abstract class FaultDetector {
     private int timeToReboot = 10;
     private int timeRemoved;
 
+    public static FaultDetector getAgentInstance(String agentType, String id, NetworkSimulator networkSimulator, int numNeighbours, Properties agentProperties){
+        switch(agentType){
+            case "baseline":
+                Distribution.Type distributionType = Distribution.Type.NORMAL;
+
+                switch(agentProperties.getProperty("distributionType")){
+                    case "normal":
+                        distributionType = Distribution.Type.NORMAL;
+                        break;
+                }
+
+                return new FaultDetectorBalanced(id, networkSimulator, numNeighbours, Long.parseLong(agentProperties.getProperty("pingTime")), distributionType, Double.parseDouble(agentProperties.getProperty("trustThreshold")));
+        }
+
+        return null;
+    }
+
     public FaultDetector(String id, NetworkSimulator networkSimulator, int numNeighbours){
         this.state = State.HEALTHY;
         this.id = id;

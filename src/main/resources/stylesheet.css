@@ -63,7 +63,7 @@
     -fx-max-width: 100px;
 }
 
-.modal-dialog {
+.statistics-dialog {
   -fx-alignment: center;
   /*-fx-background-color: linear-gradient(to bottom, derive(-fx-glass-color, 20%), -fx-glass-color);
   -fx-border-color: derive(-fx-glass-color, -20%);*/
@@ -76,12 +76,42 @@
   -fx-background-radius: 6;
 }
 
-.modal-dialog:pressed {
+.statistics-dialog:pressed {
   -fx-cursor: move;
 }
 
-.modal-dialog .button:pressed {
+.statistics-dialog .button:pressed {
   -fx-cursor: default;
+}
+
+.infected-win-dialog {
+  -fx-alignment: center;
+  /*-fx-background-color: linear-gradient(to bottom, derive(-fx-glass-color, 20%), -fx-glass-color);
+  -fx-border-color: derive(-fx-glass-color, -20%);*/
+  -fx-background-color: #e3deba;
+  -fx-border-color: black;
+  -fx-border-width: 5;
+  -fx-background-insets: 12;
+  -fx-border-insets: 10;
+  -fx-border-radius: 6;
+  -fx-background-radius: 6;
+}
+
+.infected-win-dialog:pressed {
+  -fx-cursor: move;
+}
+
+.infected-win-dialog .button:pressed {
+  -fx-cursor: default;
+}
+
+.infected-win-dialog-title {
+    -fx-alignment: center;
+    -fx-font-size: 100px Arial Rounded MT Bold;
+    -fx-font-weight: 900;
+    -fx-stroke: black;
+    -fx-letter-spacing: 20px;
+    -fx-stroke-width: 5;
 }
 
 .statistics-dialog-title {
