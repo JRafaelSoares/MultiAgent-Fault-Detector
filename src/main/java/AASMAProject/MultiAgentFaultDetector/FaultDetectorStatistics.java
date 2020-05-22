@@ -3,43 +3,54 @@ package AASMAProject.MultiAgentFaultDetector;
 public class FaultDetectorStatistics {
 
     private String id;
-    private int numCrashes;
-    private int correctCrashes;
+    private int correctPredictions = 0;
+    private int incorrectPredictions = 0;
 
-    private double crashPercentage;
-    private double crashDetectionSuccess;
-    private double quadraticError;
+    private double averageForDetection = 0.;
+    private double varianceForDetection = 0.;
 
-    public FaultDetectorStatistics(String id, int numCrashes, int correctCrashes, double crashPercentage, double crashDetectionSuccess, double quadraticError){
+    public FaultDetectorStatistics(String id){
         this.id = id;
-        this.numCrashes = numCrashes;
-        this.correctCrashes = correctCrashes;
-        this.crashPercentage = crashPercentage;
-        this.crashDetectionSuccess = crashDetectionSuccess;
-        this.quadraticError = quadraticError;
+    }
+
+    public void addPrediction(boolean prediction, int timeForPrediction){
+        if(prediction){
+            correctPredictions++;
+
+            double oldAverage = averageForDetection;
+
+            averageForDetection = updateAverage(averageForDetection, timeForPrediction);
+            varianceForDetection = updateVariance(varianceForDetection,  averageForDetection, oldAverage, timeForPrediction);
+
+        }else{
+            incorrectPredictions++;
+        }
+    }
+
+    private double updateAverage(double oldAverage, int newPoint){
+        return oldAverage + (newPoint - oldAverage) / (correctPredictions + incorrectPredictions);
+    }
+
+    private double updateVariance(double oldVariance, double average, double oldAverage, int newPoint){
+        int numDataPoints = correctPredictions + incorrectPredictions;
+        return (oldVariance * numDataPoints + (newPoint - average) * (newPoint - oldAverage)) / numDataPoints;
     }
 
     public String getId() {
         return id;
     }
 
-    public int getNumCrashes() {
-        return numCrashes;
+    public double getAccuracy(){
+        if(correctPredictions + incorrectPredictions == 0) return 100;
+        return (double) correctPredictions / (correctPredictions + incorrectPredictions);
     }
 
-    public int getCorrectCrashes() {
-        return correctCrashes;
+    public double getAverageForDetection() {
+        return averageForDetection;
     }
 
-    public double getCrashPercentage() {
-        return crashPercentage;
+    public double getVarianceForDetection() {
+        return varianceForDetection;
     }
 
-    public double getCrashDetectionSuccess() {
-        return crashDetectionSuccess;
-    }
-
-    public double getQuadraticError() {
-        return quadraticError;
-    }
 }

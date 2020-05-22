@@ -3,7 +3,7 @@ package AASMAProject.MultiAgentFaultDetector;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-public class FaultDetectorBalanced extends FaultDetector {
+public class FaultDetectorBaseline extends FaultDetector {
 
     //ping variables
     private long frequencyPing;
@@ -14,7 +14,7 @@ public class FaultDetectorBalanced extends FaultDetector {
 
     private HashMap<String, PingInfo> pingInformation = new HashMap<>();
 
-    public FaultDetectorBalanced(String id, NetworkSimulator networkSimulator, int numNeighbours, long pingTime, Distribution.Type distributionType, double trustThreshold) {
+    public FaultDetectorBaseline(String id, NetworkSimulator networkSimulator, int numNeighbours, long pingTime, Distribution.Type distributionType, double trustThreshold) {
         super(id, networkSimulator, numNeighbours);
         this.frequencyPing = pingTime;
         this.distributionType = distributionType;
@@ -23,7 +23,7 @@ public class FaultDetectorBalanced extends FaultDetector {
 
 
      /* ------------------------- *\
-    |                               |
+    |                               |boolean
     |       Healthy Behaviour       |
     |                               |
      \* ------------------------- */
@@ -100,8 +100,8 @@ public class FaultDetectorBalanced extends FaultDetector {
     }
 
     @Override
-    public HashMap<String, String> getStatistics(int time) {
-        return null;
+    public HashMap<String, Double> getStatistics() {
+        return super.getStatistics();
     }
 
     @Override

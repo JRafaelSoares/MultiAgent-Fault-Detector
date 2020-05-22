@@ -34,8 +34,7 @@ public abstract class FaultDetector {
     private int timeRemoved;
 
     // Statistics
-    private int correctPredictions = 0;
-    private int incorrectPredictions = 0;
+    private FaultDetectorStatistics statistics;
 
     public static FaultDetector getAgentInstance(String agentType, String id, NetworkSimulator networkSimulator, int numNeighbours, Properties agentProperties){
         switch(agentType){
@@ -48,7 +47,7 @@ public abstract class FaultDetector {
                         break;
                 }
 
-                return new FaultDetectorBalanced(id, networkSimulator, numNeighbours, Long.parseLong(agentProperties.getProperty("pingTime")), distributionType, Double.parseDouble(agentProperties.getProperty("trustThreshold")));
+                return new FaultDetectorBaseline(id, networkSimulator, numNeighbours, Long.parseLong(agentProperties.getProperty("pingTime")), distributionType, Double.parseDouble(agentProperties.getProperty("trustThreshold")));
         }
 
         return null;
@@ -60,6 +59,7 @@ public abstract class FaultDetector {
         this.networkSimulator = networkSimulator;
         this.numNeighbours = numNeighbours;
         this.quorums = new HashMap<>();
+        this.statistics = new FaultDetectorStatistics(id);
     }
 
     public void decide(int time, CountDownLatch numProcessing){
@@ -325,20 +325,18 @@ public abstract class FaultDetector {
     }
 
     private void evaluateNeighbour(int time, PairInfo info){
-        if(!isInvulnerable && isInfected(time, info.getServerID())){
+        if(!isInvulnerable && !quorums.containsKey(id + ":" + info.getServerID()) && isInfected(time, info.getServerID())){
             if(Environment.DEBUG) System.out.println("[" + id + "]" + " caught " + info.getServerID());
+
+            int timeForPredictionWithoutDistance = InfectedNetwork.timeInfected(time, info.getServerID()) - 2 * networkSimulator.getDistanceDelay(id, info.getServerID());
+
+            statistics.addPrediction(InfectedNetwork.contains(info.getServerID()), timeForPredictionWithoutDistance);
+
             createQuorum(info.getServerID());
         }
     }
 
     private void createQuorum(String suspectedServerID){
-
-        if(InfectedNetwork.contains(suspectedServerID)){
-
-            correctPredictions++;
-        } else{
-            incorrectPredictions++;
-        }
 
         Quorum quorum = new Quorum(numNeighbours);
         String quorumID = id + ":" + suspectedServerID;
@@ -351,21 +349,22 @@ public abstract class FaultDetector {
         int serverIndex = pairInfos.indexOf(info);
 
         // Send to suspected server
-        sendMessage(info.getFaultDetectorID(), Message.Type.quorumRequest, suspectedServerID.getBytes());
+        if(!myServerID.equals(suspectedServerID)){
+            sendMessage(info.getFaultDetectorID(), Message.Type.quorumRequest, suspectedServerID.getBytes());
+        }
 
         int leftNeighbourCount = 0;
         int rightNeighbourCount = 0;
 
         for(int i = 1; i <= pairInfos.size() / 2; i++){
-            if(i == myServer) continue;
 
             PairInfo left = pairInfos.get(Math.floorMod(serverIndex - i, pairInfos.size()));
             PairInfo right = pairInfos.get((serverIndex + i) % pairInfos.size());
 
-            if(!left.getState().equals(State.REMOVED) && leftNeighbourCount++ < numNeighbours / 2){
+            if(!left.getFaultDetectorID().equals(id) && !left.getState().equals(State.REMOVED) && leftNeighbourCount++ < numNeighbours / 2){
                 sendMessage(left.getFaultDetectorID(), Message.Type.quorumRequest, suspectedServerID.getBytes());
             }
-            if(!right.getState().equals(State.REMOVED) && rightNeighbourCount++ < numNeighbours / 2){
+            if(!right.getFaultDetectorID().equals(id) && !right.getState().equals(State.REMOVED) && rightNeighbourCount++ < numNeighbours / 2){
                 sendMessage(right.getFaultDetectorID(), Message.Type.quorumRequest, suspectedServerID.getBytes());
             }
 
@@ -453,7 +452,16 @@ public abstract class FaultDetector {
         return state;
     }
 
-    public abstract HashMap<String, String> getStatistics(int time);
+    public HashMap<String, Double> getStatistics(){
+        HashMap<String, Double> res = new HashMap<>();
+
+        res.put("Accuracy: ", statistics.getAccuracy());
+
+        res.put("Average time for detection: ", statistics.getAverageForDetection());
+        res.put("Deviation time for detection: ", statistics.getVarianceForDetection());
+
+        return res;
+    }
 
     public int getNumNeighbours(){
         return numNeighbours;
@@ -498,5 +506,16 @@ public abstract class FaultDetector {
             info.setNeighbour(true);
             neighbours.add(info);
         } while(j != index2);
+    }
+
+    private void printStatistics(int time, String suspect){
+        System.out.println("[" + id + "] t = " + time + " suspect: " + suspect + " STATISTICS: ");
+
+        HashMap<String, Double> statistics = getStatistics();
+
+        for(String statistic : statistics.keySet()){
+            System.out.println("\t" + statistic + ": " + statistics.get(statistic));
+        }
+
     }
 }

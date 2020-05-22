@@ -1,7 +1,6 @@
 package AASMAProject.MultiAgentFaultDetector;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Properties;
 
 public class RunStatistics {
@@ -56,7 +55,7 @@ public class RunStatistics {
         );
 
         for(int run = 0; run < numRuns; run++){
-            boolean result = false;
+            boolean result;
             for(int tick = 0; tick < ticksPerRun; tick++){
                 result = environment.decision();
                 if(result) break;

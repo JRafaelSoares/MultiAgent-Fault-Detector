@@ -24,7 +24,7 @@ public class Environment {
 
     private boolean infectedWin = false;
 
-    public static final boolean DEBUG = true;
+    public static final boolean DEBUG = false;
 
     public Environment(int numPairs, int quorumSize, int invulnerabilityTime, double probInsideInfectionServer, double probInsideInfectionFD, double probOutsideInfection, int serverMinTimeToAnswer, int serverMaxTimeToAnswer, int infectedDelay, int workFrequency, String agentType, Properties agentProperties){
         this.quorumSize = quorumSize;
@@ -132,7 +132,7 @@ public class Environment {
 
     public FaultDetectorStatistics getFaultDetectorStatistics(String id){
         //return listPair.get(id).getFaultDetector().getStatistics(currentTime);
-        return new FaultDetectorStatistics(id, 0, 0, 0, 0, 0);
+        return new FaultDetectorStatistics(id);
     }
 
     public int getCurrentTime(){

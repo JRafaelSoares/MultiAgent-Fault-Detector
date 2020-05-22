@@ -15,6 +15,9 @@ public class Quorum {
     }
 
     public void addVote(String faultDetectorID, boolean vote){
+
+        if(votes.containsKey(faultDetectorID)) return;
+
         if(vote) numRemovalVotes++;
         numVotes++;
 

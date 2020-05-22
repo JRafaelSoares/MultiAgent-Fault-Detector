@@ -24,6 +24,8 @@ public class Server {
 
     private int lastWork = 0;
 
+    private boolean DEBUG = false;
+
     Server(String id, int minTimeAnswer, int maxTimeAnswer, int infectedDelay, int workFrequency, NetworkSimulator networkSimulator){
         this.state = State.HEALTHY;
         this.id = id;
@@ -47,7 +49,6 @@ public class Server {
                 break;
             case INFECTED:
                 processMessageInfected(time, m);
-                //System.out.println("[" + id + "]" + " infected network: " + Arrays.toString(infected.toArray()));
                 break;
             case REMOVED:
                 processMessageRemoved(m);
@@ -69,7 +70,7 @@ public class Server {
 
     private void processMessageHealthy(int time, Message m){
         if(m.isContagious() && random.nextDouble() <= probInsideInfection){
-            if(Environment.DEBUG) System.out.println("[" + id + "]" + " infected by " + m.getSource());
+            if(DEBUG && Environment.DEBUG) System.out.println("[" + id + "]" + " infected by " + m.getSource());
             state = State.INFECTED;
             InfectedNetwork.register(id, time);
         }
@@ -79,7 +80,7 @@ public class Server {
                 Random random = new Random();
                 int delay = random.nextInt((maxTimeAnswer - minTimeAnswer) + 1) + minTimeAnswer;
 
-                if(Environment.DEBUG) System.out.println("[" + id + "] received ping request from " + m.getSource() + ", gonna answer in " + delay);
+                if(DEBUG && Environment.DEBUG) System.out.println("[" + id + "] received ping request from " + m.getSource() + ", gonna answer in " + delay);
 
                 sendMessage(m.getSource(), Message.Type.pingResponse, delay);
                 break;
@@ -139,7 +140,7 @@ public class Server {
     private void processMessage(Message m){
         switch (m.getType()){
             case removeServer:
-                if(Environment.DEBUG) System.out.println("[" + id + "] Received removal notice from " + m.getSource());
+                if(DEBUG && Environment.DEBUG) System.out.println("[" + id + "] Received removal notice from " + m.getSource());
 
                 if(state.equals(State.INFECTED)){
                     InfectedNetwork.deregister(id);
@@ -149,7 +150,7 @@ public class Server {
 
                 break;
             case workRequest:
-                if(Environment.DEBUG) System.out.println("[" + id + "] Received work request from " + m.getSource());
+                if(DEBUG && Environment.DEBUG) System.out.println("[" + id + "] Received work request from " + m.getSource());
 
                 sendMessage(m.getSource(), Message.Type.workResponse, 0);
 

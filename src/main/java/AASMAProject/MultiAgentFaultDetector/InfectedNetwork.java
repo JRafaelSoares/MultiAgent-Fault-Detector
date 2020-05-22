@@ -36,6 +36,13 @@ public class InfectedNetwork {
         }
     }
 
+    public static int timeInfected(int time, String id){
+        synchronized (infectedNetwork){
+            Integer timeInfected = infectedNetwork.get(id);
+            return time - (timeInfected == null ? time : timeInfected);
+        }
+    }
+
     public static boolean checkInfectedWin(ArrayList<String> faultDetectorLayout, int quorumSize){
         int count = 0;
         int maxConsecutive = quorumSize / 2 + 1;

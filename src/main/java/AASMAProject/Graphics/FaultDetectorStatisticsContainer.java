@@ -128,12 +128,12 @@ public class FaultDetectorStatisticsContainer extends Stage {
 
     public void setStatisticsAndShow(FaultDetectorStatistics faultDetectorStatistics){
         this.id.setText(faultDetectorStatistics.getId());
-        this.numCrashes.setText(String.format("%d", faultDetectorStatistics.getNumCrashes()));
+  /*      this.numCrashes.setText(String.format("%d", faultDetectorStatistics.getNumCrashes()));
         this.numCorrectCrashes.setText(String.format("%d", faultDetectorStatistics.getCorrectCrashes()));
         this.crashPercentage.setText(String.format("%.2f", faultDetectorStatistics.getCrashPercentage()));
         this.crashDetectionSuccess.setText(String.format("%.2f", faultDetectorStatistics.getCrashDetectionSuccess()));
         this.quadraticError.setText(String.format("%.2f", faultDetectorStatistics.getQuadraticError()));
-
+*/
         initOwner.getScene().getRoot().setEffect(new GaussianBlur());
         this.show();
     }

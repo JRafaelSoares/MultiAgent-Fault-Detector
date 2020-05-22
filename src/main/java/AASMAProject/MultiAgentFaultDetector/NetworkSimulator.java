@@ -14,6 +14,8 @@ public class NetworkSimulator {
 
     private Phaser phaser = new Phaser(1);
 
+    private boolean DEBUG = false;
+
     public NetworkSimulator(){
         this.stubs = new HashMap<>();
     }
@@ -29,32 +31,14 @@ public class NetworkSimulator {
     }
 
     public void sendMessage(String destination, Message message, int delay){
-        if(Environment.DEBUG) System.out.println("[NET-SIM] sending message from " + message.getSource() + " to " + destination);
+        if(DEBUG && Environment.DEBUG) System.out.println("[NET-SIM] sending message from " + message.getSource() + " to " + destination);
 
-        int sourceIndex = innerRing.indexOf(message.getSource());
-        int destIndex = innerRing.indexOf(destination);
+        int totalDelay = delay + getDistanceDelay(message.getSource(), destination);
 
-        int totalDelay = 0;
-
-        if(sourceIndex < 0){
-            sourceIndex = outerRing.indexOf(message.getSource());
-            totalDelay = (totalDelay + 1) % 2;
-        }
-        if(destIndex < 0){
-            destIndex = outerRing.indexOf(destination);
-            totalDelay = (totalDelay + 1) % 2;
-        }
-
-        int rightDirectionDelay = Math.floorMod(destIndex - sourceIndex, innerRing.size());
-        int leftDirectionDelay = Math.floorMod(sourceIndex - destIndex, innerRing.size());
-
-        totalDelay += delay + Math.min(rightDirectionDelay, leftDirectionDelay);
-
-        int finalTotalDelay = totalDelay;
         new Thread(() -> {
             phaser.register();
 
-            for(int i = 0; i < finalTotalDelay + 1; i++){
+            for(int i = 0; i < totalDelay + 1; i++){
                 phaser.arriveAndAwaitAdvance();
             }
 
@@ -64,7 +48,7 @@ public class NetworkSimulator {
     }
 
     public void sendAdminMessage(String destination, Message message){
-        if(Environment.DEBUG) System.out.println("[NET-SIM] sending admin message from " + message.getSource() + " to " + destination);
+        if(DEBUG && Environment.DEBUG) System.out.println("[NET-SIM] sending admin message from " + message.getSource() + " to " + destination);
 
         new Thread(() -> {
             phaser.register();
@@ -80,7 +64,28 @@ public class NetworkSimulator {
     }
 
     public void awaitFinish(){
-        if(Environment.DEBUG) System.out.println("[NET-SIM] waiting for messages to finish ");
+        if(DEBUG && Environment.DEBUG) System.out.println("[NET-SIM] waiting for messages to finish ");
         phaser.arriveAndAwaitAdvance();
+    }
+
+    public int getDistanceDelay(String source, String destination){
+        int totalDelay = 0;
+
+        int sourceIndex = innerRing.indexOf(source);
+        int destIndex = innerRing.indexOf(destination);
+
+        if(sourceIndex < 0){
+            sourceIndex = outerRing.indexOf(source);
+            totalDelay = (totalDelay + 1) % 2;
+        }
+        if(destIndex < 0){
+            destIndex = outerRing.indexOf(destination);
+            totalDelay = (totalDelay + 1) % 2;
+        }
+
+        int rightDirectionDelay = Math.floorMod(destIndex - sourceIndex, innerRing.size());
+        int leftDirectionDelay = Math.floorMod(sourceIndex - destIndex, innerRing.size());
+
+        return totalDelay + Math.min(rightDirectionDelay, leftDirectionDelay);
     }
 }
