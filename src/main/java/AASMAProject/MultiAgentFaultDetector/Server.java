@@ -37,7 +37,7 @@ public class Server {
     public synchronized void processMessage(int time, Message m){
         switch (state){
             case HEALTHY:
-                processMessageHealthy(m);
+                processMessageHealthy(time, m);
 
                 if(time - lastWork >= workFrequency){
                     sendWorkRequest();
@@ -55,9 +55,9 @@ public class Server {
         }
     }
 
-    public void infect(){
+    public void infect(int time){
         state = State.INFECTED;
-        InfectedNetwork.register(id);
+        InfectedNetwork.register(id, time);
     }
 
 
@@ -67,11 +67,11 @@ public class Server {
    |                               |
     \* ------------------------- */
 
-    private void processMessageHealthy(Message m){
+    private void processMessageHealthy(int time, Message m){
         if(m.isContagious() && random.nextDouble() <= probInsideInfection){
             if(Environment.DEBUG) System.out.println("[" + id + "]" + " infected by " + m.getSource());
             state = State.INFECTED;
-            InfectedNetwork.register(id);
+            InfectedNetwork.register(id, time);
         }
 
         switch (m.getType()){

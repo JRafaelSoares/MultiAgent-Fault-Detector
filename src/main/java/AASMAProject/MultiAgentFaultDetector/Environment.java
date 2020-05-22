@@ -93,7 +93,7 @@ public class Environment {
             if(InfectedNetwork.getNumInfected() == 0 && random.nextDouble() <= probOutsideInfection){
                 int toBeInfected = random.nextInt(listPair.size());
 
-                listPair.get(toBeInfected).getServer().infect();
+                listPair.get(toBeInfected).getServer().infect(currentTime);
             }
         } else currentInvulnerabilityTime--;
     }

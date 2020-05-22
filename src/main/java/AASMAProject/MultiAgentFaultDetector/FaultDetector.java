@@ -33,6 +33,10 @@ public abstract class FaultDetector {
     private int timeToReboot = 10;
     private int timeRemoved;
 
+    // Statistics
+    private int correctPredictions = 0;
+    private int incorrectPredictions = 0;
+
     public static FaultDetector getAgentInstance(String agentType, String id, NetworkSimulator networkSimulator, int numNeighbours, Properties agentProperties){
         switch(agentType){
             case "baseline":
@@ -106,7 +110,7 @@ public abstract class FaultDetector {
         if(m.isContagious() && random.nextDouble() <= probInsideInfection){
             if(Environment.DEBUG) System.out.println("[" + id + "]" + " infected by " + m.getSource());
             state = State.INFECTED;
-            InfectedNetwork.register(id);
+            InfectedNetwork.register(id, time);
         }
 
         switch (m.getType()){
@@ -328,6 +332,13 @@ public abstract class FaultDetector {
     }
 
     private void createQuorum(String suspectedServerID){
+
+        if(InfectedNetwork.contains(suspectedServerID)){
+
+            correctPredictions++;
+        } else{
+            incorrectPredictions++;
+        }
 
         Quorum quorum = new Quorum(numNeighbours);
         String quorumID = id + ":" + suspectedServerID;

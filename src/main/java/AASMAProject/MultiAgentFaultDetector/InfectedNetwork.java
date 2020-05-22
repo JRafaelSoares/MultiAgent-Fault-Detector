@@ -1,14 +1,14 @@
 package AASMAProject.MultiAgentFaultDetector;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.HashMap;
 
 public class InfectedNetwork {
-    private static final HashSet<String> infectedNetwork = new HashSet<>();
+    private static final HashMap<String, Integer> infectedNetwork = new HashMap<>();
 
-    public static void register(String id){
+    public static void register(String id, int time){
         synchronized (infectedNetwork){
-            infectedNetwork.add(id);
+            infectedNetwork.put(id, time);
         }
     }
 
@@ -20,7 +20,7 @@ public class InfectedNetwork {
 
     public static boolean contains(String id){
         synchronized (infectedNetwork){
-            return infectedNetwork.contains(id);
+            return infectedNetwork.containsKey(id);
         }
     }
 
@@ -41,7 +41,7 @@ public class InfectedNetwork {
         int maxConsecutive = quorumSize / 2 + 1;
 
         for(int i = 0; i < faultDetectorLayout.size() + maxConsecutive; i++){
-            if(infectedNetwork.contains(faultDetectorLayout.get(i % faultDetectorLayout.size()))){
+            if(infectedNetwork.containsKey(faultDetectorLayout.get(i % faultDetectorLayout.size()))){
                 if(++count == maxConsecutive) return true;
             } else {
                 count = 0;
