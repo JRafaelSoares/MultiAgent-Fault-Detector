@@ -1,4 +1,4 @@
-package AASMAProject.MultiAgentFaultDetector;
+package AASMAProject.Statistics;
 
 public class StatisticsCalculator {
 

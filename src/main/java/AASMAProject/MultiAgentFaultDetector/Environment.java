@@ -1,6 +1,7 @@
 package AASMAProject.MultiAgentFaultDetector;
 
 import AASMAProject.Graphics.GraphicsHandler;
+import AASMAProject.Statistics.StatisticsCalculator;
 
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
@@ -151,8 +152,8 @@ public class Environment {
 
         }
 
-        res.put("Accuracy: ", accuracy);
-        res.put("Tme for detection: ", timeForDetection);
+        res.put("Accuracy", accuracy);
+        res.put("Time for detection", timeForDetection);
 
         return res;
     }

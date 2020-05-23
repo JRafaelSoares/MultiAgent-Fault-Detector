@@ -1,5 +1,7 @@
 package AASMAProject.MultiAgentFaultDetector;
 
+import AASMAProject.Statistics.StatisticsCalculator;
+
 public class FaultDetectorStatistics {
 
     private String id;

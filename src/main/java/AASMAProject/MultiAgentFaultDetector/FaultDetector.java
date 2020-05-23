@@ -472,6 +472,10 @@ public abstract class FaultDetector {
         return pairInfos;
     }
 
+    public HashMap<String, PairInfo> getIndexedPairInfos() {
+        return indexedPairInfos;
+    }
+
     public void setPairs(ArrayList<String> servers, ArrayList<String> faultDetectors) {
         pairInfos = new ArrayList<>(servers.size());
         indexedPairInfos = new HashMap<>(servers.size());
