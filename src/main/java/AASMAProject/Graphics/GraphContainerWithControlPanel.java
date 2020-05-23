@@ -72,7 +72,6 @@ public class GraphContainerWithControlPanel extends BorderPane {
             this.stepSizeInput.setId("step-size-input");
 
             BooleanBinding stepSizeInputValid = Bindings.createBooleanBinding(() -> {
-                // check textField1.getText() and return true/false as appropriate
                 try{
                     Integer.parseInt(this.stepSizeInput.getText());
                 } catch (Exception e){

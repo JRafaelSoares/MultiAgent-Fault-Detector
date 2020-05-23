@@ -14,8 +14,8 @@ public class FaultDetectorBalanced extends FaultDetector {
 
     private HashMap<String, PingInfo> pingInformation = new HashMap<>();
 
-    public FaultDetectorBalanced(String id, NetworkSimulator networkSimulator, int numNeighbours, long pingTime, Distribution.Type distributionType, double trustThreshold) {
-        super(id, networkSimulator, numNeighbours);
+    public FaultDetectorBalanced(String id, NetworkSimulator networkSimulator, int numNeighbours, double probInsideInfection, long pingTime, Distribution.Type distributionType, double trustThreshold) {
+        super(id, networkSimulator, numNeighbours, probInsideInfection);
         this.frequencyPing = pingTime;
         this.distributionType = distributionType;
         this.trustThreshold = trustThreshold;

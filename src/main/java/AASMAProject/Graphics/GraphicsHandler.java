@@ -9,31 +9,23 @@ import javafx.animation.Animation;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Application;
-import javafx.application.Platform;
-import javafx.geometry.Insets;
-import javafx.scene.Node;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.util.Duration;
-import javafx.util.Pair;
+import java.io.*;
+import java.net.URL;
+import java.util.*;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Properties;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class GraphicsHandler extends Application {
 
     private Timeline timeline;
     private FaultDetectorStatisticsContainer statisticsDialog;
     private InfectedWinPopup winPopup;
+    private PropertiesConfigDialog propertiesConfigDialog;
 
     private static final String HEALTHY_STYLE = "-fx-stroke: green;";
     private static final String CRASHED_STYLE = "-fx-stroke: red;";
@@ -42,100 +34,30 @@ public class GraphicsHandler extends Application {
     @Override
     public void start(Stage ignored) {
 
-        // Create the custom dialog.
-        Dialog<Pair<String, String>> dialog = new Dialog<>();
-        dialog.setTitle("Login Dialog");
-        dialog.setHeaderText("Look, a Custom Login Dialog");
+        File[] possibleAgents = getAvailableAgents("agents/");
+        HashMap<String, Properties> agents = new HashMap<>();
 
-        // Set the button types.
-        ButtonType loginButtonType = new ButtonType("Start Simulation", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().add(loginButtonType);
+        for(File a : possibleAgents){
+            if(a.getName().endsWith(".properties")){
+                Properties agentProperties = new Properties();
 
-        // Create the username and password labels and fields.
-        GridPane grid = new GridPane();
-        grid.setHgap(10);
-        grid.setVgap(10);
-        grid.setPadding(new Insets(20, 150, 10, 10));
+                try {
+                    agentProperties.load(new FileInputStream(a));
+                } catch (IOException | NullPointerException e) {
+                    System.out.println("Couldn't load agent properties file");
+                    e.printStackTrace();
+                    return;
+                }
 
-        TextField numPairsString = new TextField();
-        numPairsString.setPromptText("Number of Pairs");
-        TextField stepString = new TextField();
-        stepString.setPromptText("Step Size");
-
-        grid.add(new Label("Number of Pairs:"), 0, 0);
-        grid.add(numPairsString, 1, 0);
-        grid.add(new Label("Step Size:"), 0, 1);
-        grid.add(stepString, 1, 1);
-
-        // Enable/Disable login button depending on whether a username was entered.
-        Node proceedButton = dialog.getDialogPane().lookupButton(loginButtonType);
-        proceedButton.setDisable(true);
-
-        // Do some validation (using the Java 8 lambda syntax).
-        numPairsString.textProperty().addListener((observable, oldValue, newValue) -> {
-            proceedButton.setDisable(newValue.trim().isEmpty());
-        });
-
-        dialog.getDialogPane().setContent(grid);
-
-        // Request focus on the username field by default.
-        Platform.runLater(() -> numPairsString.requestFocus());
-
-        dialog.setResultConverter(dialogButton -> {
-            if (dialogButton == loginButtonType) {
-                return new Pair<>(numPairsString.getText(), stepString.getText());
+                agents.put(a.getName().split("\\.properties")[0], agentProperties);
             }
-            return null;
-        });
-
-        Optional<Pair<String, String>> result = dialog.showAndWait();
-
-        AtomicInteger numPairs = new AtomicInteger(5);
-        AtomicInteger step = new AtomicInteger(1);
-
-        result.ifPresent(usernamePassword -> {
-            numPairs.set(Integer.parseInt(usernamePassword.getKey()));
-            step.set(Integer.parseInt(usernamePassword.getValue()));
-        });
-
-        int quorumSize = 5;
-        int invulnerabilityTime = 200;
-        double probInsideInfectionServer = 0.01;
-        double probInsideInfectionFD = 0.01;
-        double probOutsideInfection = 0.05;
-        int serverMinTimeToAnswer = 2;
-        int serverMaxTimeToAnswer = 5;
-        int infectedDelay = 3;
-        int workFrequency = 5;
-        String agentType = "baseline";
-
-        Properties agentProperties = new Properties();
-        ClassLoader loader = Thread.currentThread().getContextClassLoader();
-
-        try {
-            agentProperties.load(getClass().getResourceAsStream("../../agents/" + agentType + ".properties"));
-        } catch (IOException | NullPointerException e) {
-            System.out.println("Couldn't load agent properties file");
-            e.printStackTrace();
-            return;
         }
 
-        Environment environment = new Environment(
-                numPairs.get(),
-                quorumSize,
-                invulnerabilityTime,
-                probInsideInfectionServer,
-                probInsideInfectionFD,
-                probOutsideInfection,
-                serverMinTimeToAnswer,
-                serverMaxTimeToAnswer,
-                workFrequency,
-                infectedDelay,
-                agentType,
-                agentProperties
-        );
+        propertiesConfigDialog = new PropertiesConfigDialog(agents);
 
-        Graph<String, String> g = buildGraph(numPairs.get());
+        Environment environment = propertiesConfigDialog.runDialog();
+
+        Graph<String, String> g = buildGraph(propertiesConfigDialog.getNumAgents());
 
         SmartPlacementStrategy strategy = new MultiAgentFaultDetectorPlacementStrategy();
         SmartGraphPanel<String, String> graphView = new SmartGraphPanel<>(g, strategy);
@@ -145,7 +67,7 @@ public class GraphicsHandler extends Application {
         GraphContainerWithControlPanel graphContainer = new GraphContainerWithControlPanel(graphView);
 
         timeline = new Timeline(new KeyFrame(Duration.millis(100), event ->
-                updateEnvironment(environment, numPairs.get(), graphView, graphContainer)));
+                updateEnvironment(environment, propertiesConfigDialog.getNumAgents(), graphView, graphContainer)));
 
         graphContainer.setPlayButtonAction(e -> {
             timeline.setCycleCount(Animation.INDEFINITE);
@@ -156,7 +78,7 @@ public class GraphicsHandler extends Application {
 
         graphContainer.setRestartButtonAction(e -> {
             environment.restart();
-            updateInterface(environment, numPairs.get(), graphView, graphContainer);
+            updateInterface(environment, propertiesConfigDialog.getNumAgents(), graphView, graphContainer);
         });
 
         graphContainer.setStepButtonAction(e -> {
@@ -273,5 +195,12 @@ public class GraphicsHandler extends Application {
 
             graphContainer.setTimer(Integer.toString(environment.getCurrentTime()));
         }
+    }
+
+    private File[] getAvailableAgents(String folder) {
+        ClassLoader loader = Thread.currentThread().getContextClassLoader();
+        URL url = loader.getResource(folder);
+        String path = url.getPath();
+        return new File(path).listFiles();
     }
 }

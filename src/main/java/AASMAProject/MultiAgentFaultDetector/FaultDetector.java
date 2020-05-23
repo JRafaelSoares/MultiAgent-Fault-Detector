@@ -37,7 +37,7 @@ public abstract class FaultDetector {
     private int correctPredictions = 0;
     private int incorrectPredictions = 0;
 
-    public static FaultDetector getAgentInstance(String agentType, String id, NetworkSimulator networkSimulator, int numNeighbours, Properties agentProperties){
+    public static FaultDetector getAgentInstance(String agentType, String id, NetworkSimulator networkSimulator, int numNeighbours, double probInsideInfection, Properties agentProperties){
         switch(agentType){
             case "baseline":
                 Distribution.Type distributionType = Distribution.Type.NORMAL;
@@ -48,18 +48,19 @@ public abstract class FaultDetector {
                         break;
                 }
 
-                return new FaultDetectorBalanced(id, networkSimulator, numNeighbours, Long.parseLong(agentProperties.getProperty("pingTime")), distributionType, Double.parseDouble(agentProperties.getProperty("trustThreshold")));
+                return new FaultDetectorBalanced(id, networkSimulator, numNeighbours, probInsideInfection, Long.parseLong(agentProperties.getProperty("pingTime")), distributionType, Double.parseDouble(agentProperties.getProperty("trustThreshold")));
         }
 
         return null;
     }
 
-    public FaultDetector(String id, NetworkSimulator networkSimulator, int numNeighbours){
+    public FaultDetector(String id, NetworkSimulator networkSimulator, int numNeighbours, double probInsideInfection){
         this.state = State.HEALTHY;
         this.id = id;
         this.networkSimulator = networkSimulator;
         this.numNeighbours = numNeighbours;
         this.quorums = new HashMap<>();
+        this.probInsideInfection = probInsideInfection;
     }
 
     public void decide(int time, CountDownLatch numProcessing){

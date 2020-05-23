@@ -30,7 +30,7 @@ public class Environment {
         this.quorumSize = quorumSize;
         this.invulnerabilityTime = invulnerabilityTime;
         this.currentInvulnerabilityTime = invulnerabilityTime;
-        this.probOutsideInfection = probOutsideInfection;
+        this.probOutsideInfection = probOutsideInfection / 100;
 
         listPair = new ArrayList<>(numPairs);
         currentTime = 0;
@@ -40,8 +40,8 @@ public class Environment {
         networkSimulator = new NetworkSimulator();
 
         for(int i = 0; i < numPairs; i++){
-            Server server = new Server("S" + i, serverMinTimeToAnswer, serverMaxTimeToAnswer, infectedDelay, workFrequency, networkSimulator);
-            FaultDetector faultDetector = FaultDetector.getAgentInstance(agentType, "FD" + i, networkSimulator, quorumSize, agentProperties);
+            Server server = new Server("S" + i, serverMinTimeToAnswer, serverMaxTimeToAnswer, infectedDelay, workFrequency, probInsideInfectionServer / 100, networkSimulator);
+            FaultDetector faultDetector = FaultDetector.getAgentInstance(agentType, "FD" + i, networkSimulator, quorumSize, probInsideInfectionFD / 100, agentProperties);
 
             listPair.add(new Pair(faultDetector, server));
             faultDetectorIDs.add("FD" + i);
