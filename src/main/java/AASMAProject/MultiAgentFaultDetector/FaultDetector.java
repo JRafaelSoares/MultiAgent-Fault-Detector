@@ -27,7 +27,7 @@ public abstract class FaultDetector {
 
     private boolean isInvulnerable = true;
 
-    private double probInsideInfection = 0.01;
+    private double probInsideInfection;
 
     //crashed variables
     private int timeToReboot = 10;
@@ -36,30 +36,32 @@ public abstract class FaultDetector {
     // Statistics
     private FaultDetectorStatistics statistics;
 
-    public static FaultDetector getAgentInstance(String agentType, String id, NetworkSimulator networkSimulator, int numNeighbours, Properties agentProperties){
-        switch(agentType){
+    public static FaultDetector getAgentInstance(String agentType, String id, NetworkSimulator networkSimulator, int numNeighbours, double probInsideInfection, Properties agentProperties) {
+        switch (agentType) {
             case "baseline":
                 Distribution.Type distributionType = Distribution.Type.NORMAL;
 
-                switch(agentProperties.getProperty("distributionType")){
+                switch (agentProperties.getProperty("distributionType")) {
                     case "normal":
                         distributionType = Distribution.Type.NORMAL;
                         break;
                 }
 
-                return new FaultDetectorBaseline(id, networkSimulator, numNeighbours, Long.parseLong(agentProperties.getProperty("pingTime")), distributionType, Double.parseDouble(agentProperties.getProperty("trustThreshold")));
-        }
+                return new FaultDetectorBaseline(id, networkSimulator, numNeighbours, probInsideInfection, Long.parseLong(agentProperties.getProperty("pingTime")), distributionType, Double.parseDouble(agentProperties.getProperty("trustThreshold")));
 
+        }
         return null;
     }
 
-    public FaultDetector(String id, NetworkSimulator networkSimulator, int numNeighbours){
+    public FaultDetector(String id, NetworkSimulator networkSimulator, int numNeighbours, double probInsideInfection){
         this.state = State.HEALTHY;
         this.id = id;
         this.networkSimulator = networkSimulator;
         this.numNeighbours = numNeighbours;
         this.quorums = new HashMap<>();
         this.statistics = new FaultDetectorStatistics(id);
+        this.probInsideInfection = probInsideInfection;
+
     }
 
     public void decide(int time, CountDownLatch numProcessing){

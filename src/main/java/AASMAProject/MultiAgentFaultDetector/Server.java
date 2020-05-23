@@ -26,20 +26,18 @@ public class Server {
 
     private boolean DEBUG = false;
 
-    Server(String id, int minTimeAnswer, int maxTimeAnswer, int infectedDelay, int workFrequency, NetworkSimulator networkSimulator){
+    Server(String id, int minTimeAnswer, int maxTimeAnswer, int infectedDelay, int workFrequency, double probInsideInfection, NetworkSimulator networkSimulator){
         this.state = State.HEALTHY;
         this.id = id;
         this.minTimeAnswer = minTimeAnswer;
         this.maxTimeAnswer = maxTimeAnswer;
         this.infectedDelay = infectedDelay;
         this.workFrequency = workFrequency;
+        this.probInsideInfection = probInsideInfection;
         this.networkSimulator = networkSimulator;
     }
 
     public synchronized void processMessage(int time, Message m){
-        if(time > 1000){
-            System.out.println("\n\n\nBOIIIIIIIIIIIIIIIIIIIIII\n\n\n");
-        }
         switch (state){
             case HEALTHY:
                 processMessageHealthy(time, m);

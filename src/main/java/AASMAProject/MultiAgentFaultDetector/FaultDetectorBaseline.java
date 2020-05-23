@@ -14,8 +14,8 @@ public class FaultDetectorBaseline extends FaultDetector {
 
     private HashMap<String, PingInfo> pingInformation = new HashMap<>();
 
-    public FaultDetectorBaseline(String id, NetworkSimulator networkSimulator, int numNeighbours, long pingTime, Distribution.Type distributionType, double trustThreshold) {
-        super(id, networkSimulator, numNeighbours);
+    public FaultDetectorBaseline(String id, NetworkSimulator networkSimulator, int numNeighbours, double probInsideInfection, long pingTime, Distribution.Type distributionType, double trustThreshold) {
+        super(id, networkSimulator, numNeighbours, probInsideInfection);
         this.frequencyPing = pingTime;
         this.distributionType = distributionType;
         this.trustThreshold = trustThreshold;
