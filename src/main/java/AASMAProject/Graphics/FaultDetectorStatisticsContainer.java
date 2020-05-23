@@ -1,6 +1,6 @@
 package AASMAProject.Graphics;
 
-import AASMAProject.MultiAgentFaultDetector.FaultDetectorStatistics;
+import AASMAProject.MultiAgentFaultDetector.Agents.FaultDetectorStatistics;
 import javafx.geometry.Insets;
 import javafx.geometry.Point2D;
 import javafx.geometry.Pos;

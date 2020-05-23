@@ -1,5 +1,7 @@
 package AASMAProject.MultiAgentFaultDetector;
 
+import AASMAProject.MultiAgentFaultDetector.Agents.FaultDetector;
+
 public class Pair {
     private FaultDetector faultDetector;
     private Server server;

@@ -1,4 +1,4 @@
-package AASMAProject.MultiAgentFaultDetector;
+package AASMAProject.MultiAgentFaultDetector.Agents;
 
 import AASMAProject.Statistics.StatisticsCalculator;
 

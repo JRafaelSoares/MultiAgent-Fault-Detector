@@ -1,5 +1,6 @@
-package AASMAProject.MultiAgentFaultDetector;
+package AASMAProject.MultiAgentFaultDetector.Agents;
 
+import AASMAProject.MultiAgentFaultDetector.*;
 import org.apache.commons.lang3.SerializationUtils;
 
 import java.util.*;
@@ -39,16 +40,11 @@ public abstract class FaultDetector {
     public static FaultDetector getAgentInstance(String agentType, String id, NetworkSimulator networkSimulator, int numNeighbours, double probInsideInfection, Properties agentProperties) {
         switch (agentType) {
             case "baseline":
-                Distribution.Type distributionType = Distribution.Type.NORMAL;
-
-                switch (agentProperties.getProperty("distributionType")) {
-                    case "normal":
-                        distributionType = Distribution.Type.NORMAL;
-                        break;
-                }
-
-                return new FaultDetectorBaseline(id, networkSimulator, numNeighbours, probInsideInfection, Long.parseLong(agentProperties.getProperty("pingTime")), distributionType, Double.parseDouble(agentProperties.getProperty("trustThreshold")));
-
+                return new FaultDetectorBaseline(id, networkSimulator, numNeighbours, probInsideInfection, agentProperties);
+            case "learnPing":
+                return new FaultDetectorLearnPing(id, networkSimulator, numNeighbours, probInsideInfection, agentProperties);
+            case "memory":
+                return new FaultDetectorMemory(id, networkSimulator, numNeighbours, probInsideInfection, agentProperties);
         }
         return null;
     }

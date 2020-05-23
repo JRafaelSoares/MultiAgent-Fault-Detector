@@ -1,10 +1,15 @@
-package AASMAProject.MultiAgentFaultDetector;
+package AASMAProject.MultiAgentFaultDetector.Agents;
+
+import AASMAProject.MultiAgentFaultDetector.Environment;
+import AASMAProject.MultiAgentFaultDetector.Message;
+import AASMAProject.MultiAgentFaultDetector.NetworkSimulator;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
-public class FaultDetectorBaseline extends FaultDetector {
+public class FaultDetectorMemory extends FaultDetector {
 
     //ping variables
     private long frequencyPing;
@@ -22,11 +27,11 @@ public class FaultDetectorBaseline extends FaultDetector {
     private HashMap<String, PingInfo> pingInformation = new HashMap<>();
 
 
-    public FaultDetectorBaseline(String id, NetworkSimulator networkSimulator, int numNeighbours, double probInsideInfection, long pingTime, Distribution.Type distributionType, double trustThreshold) {
+    public FaultDetectorMemory(String id, NetworkSimulator networkSimulator, int numNeighbours, double probInsideInfection, Properties agentProperties) {
         super(id, networkSimulator, numNeighbours, probInsideInfection);
-        this.frequencyPing = pingTime;
-        this.distributionType = distributionType;
-        this.trustThreshold = trustThreshold;
+        this.frequencyPing = Long.parseLong(agentProperties.getProperty("pingTime"));
+        this.distributionType = Distribution.Type.NORMAL;
+        this.trustThreshold = Double.parseDouble(agentProperties.getProperty("trustThreshold"));
     }
 
 

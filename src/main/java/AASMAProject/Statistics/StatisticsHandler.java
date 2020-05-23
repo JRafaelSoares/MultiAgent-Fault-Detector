@@ -5,9 +5,8 @@ import com.opencsv.CSVWriter;
 
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Properties;
+
 
 public class StatisticsHandler {
     public static void main(String[] args) throws IOException {

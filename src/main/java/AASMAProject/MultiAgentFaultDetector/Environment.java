@@ -1,6 +1,8 @@
 package AASMAProject.MultiAgentFaultDetector;
 
 import AASMAProject.Graphics.GraphicsHandler;
+import AASMAProject.MultiAgentFaultDetector.Agents.FaultDetector;
+import AASMAProject.MultiAgentFaultDetector.Agents.FaultDetectorStatistics;
 import AASMAProject.Statistics.StatisticsCalculator;
 
 import java.util.*;

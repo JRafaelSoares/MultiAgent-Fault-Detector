@@ -24,14 +24,14 @@ public class Message {
     private byte[] content;
     private boolean contagious;
 
-    Message(String source, String destination, Type type, boolean contagious){
+    public Message(String source, String destination, Type type, boolean contagious){
         this.source = source;
         this.destination = destination;
         this.type = type;
         this.contagious = contagious;
     }
 
-    Message(String source, String destination, Type type, boolean contagious, byte[] content){
+    public Message(String source, String destination, Type type, boolean contagious, byte[] content){
         this(source, destination, type, contagious);
         this.content = content;
     }

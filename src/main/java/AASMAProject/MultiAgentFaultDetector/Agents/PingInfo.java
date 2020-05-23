@@ -1,4 +1,6 @@
-package AASMAProject.MultiAgentFaultDetector;
+package AASMAProject.MultiAgentFaultDetector.Agents;
+
+import AASMAProject.MultiAgentFaultDetector.Agents.Distribution;
 
 public class PingInfo {
 
