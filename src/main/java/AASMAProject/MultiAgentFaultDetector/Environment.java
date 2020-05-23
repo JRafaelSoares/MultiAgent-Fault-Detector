@@ -64,6 +64,8 @@ public class Environment {
     public void restart(){
         deciding.lock();
 
+        networkSimulator.restart();
+
         currentTime = 0;
 
         currentInvulnerabilityTime = invulnerabilityTime;
@@ -130,9 +132,33 @@ public class Environment {
         return infectedWin;
     }
 
-    public FaultDetectorStatistics getFaultDetectorStatistics(String id){
-        //return listPair.get(id).getFaultDetector().getStatistics(currentTime);
-        return new FaultDetectorStatistics(id);
+    public HashMap<String, Double> getStatistics(){
+        HashMap<String, Double> res = new HashMap<>();
+
+        double accuracy = 0.;
+        double timeForDetection = 0.;
+
+        int i = 0;
+        for(Pair pair : listPair){
+            i++;
+
+            FaultDetectorStatistics statistics = pair.getFaultDetector().getStatistics();
+
+            if(statistics.getNumPredictions() == 0) continue;
+
+            accuracy = StatisticsCalculator.updateAverage(accuracy, i, statistics.getAccuracy());
+            timeForDetection = StatisticsCalculator.updateAverage(timeForDetection, i, statistics.getAverageForDetection());
+
+        }
+
+        res.put("Accuracy: ", accuracy);
+        res.put("Tme for detection: ", timeForDetection);
+
+        return res;
+    }
+
+    public FaultDetectorStatistics getFaultDetectorStatistics(int id){
+        return listPair.get(id).getFaultDetector().getStatistics();
     }
 
     public int getCurrentTime(){

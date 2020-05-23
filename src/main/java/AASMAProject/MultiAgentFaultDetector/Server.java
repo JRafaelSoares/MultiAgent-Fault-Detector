@@ -37,6 +37,9 @@ public class Server {
     }
 
     public synchronized void processMessage(int time, Message m){
+        if(time > 1000){
+            System.out.println("\n\n\nBOIIIIIIIIIIIIIIIIIIIIII\n\n\n");
+        }
         switch (state){
             case HEALTHY:
                 processMessageHealthy(time, m);
@@ -166,6 +169,7 @@ public class Server {
 
     public void restart(){
         this.state = State.HEALTHY;
+        lastWork = 0;
     }
 
     public void sendMessage(String destination, Message.Type messageType, int delay){

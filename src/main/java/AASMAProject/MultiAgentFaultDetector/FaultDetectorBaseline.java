@@ -100,7 +100,7 @@ public class FaultDetectorBaseline extends FaultDetector {
     }
 
     @Override
-    public HashMap<String, Double> getStatistics() {
+    public FaultDetectorStatistics getStatistics() {
         return super.getStatistics();
     }
 

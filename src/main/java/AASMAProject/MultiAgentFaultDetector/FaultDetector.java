@@ -396,14 +396,16 @@ public abstract class FaultDetector {
 
     public void restart(){
         this.state = State.HEALTHY;
-
         this.isInvulnerable = true;
+        this.statistics = new FaultDetectorStatistics(id);
+        this.quorums = new HashMap<>();
 
         for(PairInfo info : pairInfos){
             info.setState(State.HEALTHY);
         }
 
-        this.quorums = new HashMap<>();
+        recalculateNeighbours();
+
     }
 
     public void broadcast(Collection<PairInfo> destinations, Message.Type messageType){
@@ -452,15 +454,8 @@ public abstract class FaultDetector {
         return state;
     }
 
-    public HashMap<String, Double> getStatistics(){
-        HashMap<String, Double> res = new HashMap<>();
-
-        res.put("Accuracy: ", statistics.getAccuracy());
-
-        res.put("Average time for detection: ", statistics.getAverageForDetection());
-        res.put("Deviation time for detection: ", statistics.getVarianceForDetection());
-
-        return res;
+    public FaultDetectorStatistics getStatistics(){
+        return statistics;
     }
 
     public int getNumNeighbours(){
@@ -506,16 +501,5 @@ public abstract class FaultDetector {
             info.setNeighbour(true);
             neighbours.add(info);
         } while(j != index2);
-    }
-
-    private void printStatistics(int time, String suspect){
-        System.out.println("[" + id + "] t = " + time + " suspect: " + suspect + " STATISTICS: ");
-
-        HashMap<String, Double> statistics = getStatistics();
-
-        for(String statistic : statistics.keySet()){
-            System.out.println("\t" + statistic + ": " + statistics.get(statistic));
-        }
-
     }
 }

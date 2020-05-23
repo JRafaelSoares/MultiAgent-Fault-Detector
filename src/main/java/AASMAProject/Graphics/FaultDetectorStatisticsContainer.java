@@ -22,11 +22,10 @@ import java.util.concurrent.atomic.AtomicReference;
 public class FaultDetectorStatisticsContainer extends Stage {
 
     private Text id;
-    private Text numCrashes;
-    private Text numCorrectCrashes;
-    private Text crashPercentage;
-    private Text crashDetectionSuccess;
-    private Text quadraticError;
+    private Text numPredictions;
+    private Text averageTimeForDetection;
+    private Text standardDeviationTimeForDetection;
+    private Text accuracy;
 
     private Stage initOwner;
 
@@ -44,39 +43,32 @@ public class FaultDetectorStatisticsContainer extends Stage {
         statisticsBox.setHgap(15);
         statisticsBox.setVgap(15);
 
-        this.numCrashes = new Text();
-        this.numCrashes.getStyleClass().add("statistics-value-text");
-        this.numCorrectCrashes = new Text();
-        this.numCorrectCrashes.getStyleClass().add("statistics-value-text");
-        this.crashPercentage = new Text();
-        this.crashPercentage.getStyleClass().add("statistics-value-text");
-        this.crashDetectionSuccess = new Text();
-        this.crashDetectionSuccess.getStyleClass().add("statistics-value-text");
-        this.quadraticError = new Text();
-        this.quadraticError.getStyleClass().add("statistics-value-text");
+        this.numPredictions = new Text();
+        this.numPredictions.getStyleClass().add("statistics-value-text");
+        this.averageTimeForDetection = new Text();
+        this.averageTimeForDetection.getStyleClass().add("statistics-value-text");
+        this.standardDeviationTimeForDetection = new Text();
+        this.standardDeviationTimeForDetection.getStyleClass().add("statistics-value-text");
+        this.accuracy = new Text();
+        this.accuracy.getStyleClass().add("statistics-value-text");
 
-        Label numCrashesLabel = new Label("Number of Crashes:");
-        numCrashesLabel.getStyleClass().add("statistics-label-text");
-        Label numCorrectCrashesLabel = new Label("Correct Crashes:");
-        numCorrectCrashesLabel.getStyleClass().add("statistics-label-text");
-        Label crashPercentageLabel = new Label("Crash Percentage:");
-        crashPercentageLabel.getStyleClass().add("statistics-label-text");
-        Label crashDetectionSuccessLabel = new Label("Number Detection Success:");
-        crashDetectionSuccessLabel.getStyleClass().add("statistics-label-text");
-        Label quadraticErrorLabel = new Label("Quadratic Error:");
-        quadraticErrorLabel.getStyleClass().add("statistics-label-text");
+        Label numPredictions = new Label("Number of Predictions:");
+        numPredictions.getStyleClass().add("statistics-label-text");
+        Label averageTimeForDetection = new Label("Average time for detection:");
+        averageTimeForDetection.getStyleClass().add("statistics-label-text");
+        Label standardDeviationTimeForDetection = new Label("Standard Deviation time for detection:");
+        standardDeviationTimeForDetection.getStyleClass().add("statistics-label-text");
+        Label accuracy = new Label("Accuracy:");
+        accuracy.getStyleClass().add("statistics-label-text");
 
-        statisticsBox.add(numCrashesLabel, 0, 0);
-        statisticsBox.add(numCrashes, 1, 0);
-        statisticsBox.add(numCorrectCrashesLabel, 0, 1);
-        statisticsBox.add(numCorrectCrashes, 1, 1);
-        statisticsBox.add(crashPercentageLabel, 0, 2);
-        statisticsBox.add(crashPercentage, 1, 2);
-        statisticsBox.add(crashDetectionSuccessLabel, 0, 3);
-        statisticsBox.add(crashDetectionSuccess, 1, 3);
-        statisticsBox.add(quadraticErrorLabel, 0, 4);
-        statisticsBox.add(quadraticError, 1, 4);
-
+        statisticsBox.add(numPredictions, 0, 0);
+        statisticsBox.add(this.numPredictions, 1, 0);
+        statisticsBox.add(averageTimeForDetection, 0, 1);
+        statisticsBox.add(this.averageTimeForDetection, 1, 1);
+        statisticsBox.add(standardDeviationTimeForDetection, 0, 2);
+        statisticsBox.add(this.standardDeviationTimeForDetection, 1, 2);
+        statisticsBox.add(accuracy, 0, 3);
+        statisticsBox.add(this.accuracy, 1, 3);
         statisticsDialogPane.setCenter(statisticsBox);
 
         Button closeDialogButton = new Button();
@@ -128,12 +120,11 @@ public class FaultDetectorStatisticsContainer extends Stage {
 
     public void setStatisticsAndShow(FaultDetectorStatistics faultDetectorStatistics){
         this.id.setText(faultDetectorStatistics.getId());
-  /*      this.numCrashes.setText(String.format("%d", faultDetectorStatistics.getNumCrashes()));
-        this.numCorrectCrashes.setText(String.format("%d", faultDetectorStatistics.getCorrectCrashes()));
-        this.crashPercentage.setText(String.format("%.2f", faultDetectorStatistics.getCrashPercentage()));
-        this.crashDetectionSuccess.setText(String.format("%.2f", faultDetectorStatistics.getCrashDetectionSuccess()));
-        this.quadraticError.setText(String.format("%.2f", faultDetectorStatistics.getQuadraticError()));
-*/
+        this.numPredictions.setText(String.format("%d", faultDetectorStatistics.getNumPredictions()));
+        this.averageTimeForDetection.setText(String.format("%.2f", faultDetectorStatistics.getAverageForDetection()));
+        this.standardDeviationTimeForDetection.setText(String.format("%.2f", faultDetectorStatistics.getStandardDeviationForDetection()));
+        this.accuracy.setText(String.format("%.2f", faultDetectorStatistics.getAccuracy()));
+
         initOwner.getScene().getRoot().setEffect(new GaussianBlur());
         this.show();
     }

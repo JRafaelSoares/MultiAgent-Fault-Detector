@@ -14,6 +14,8 @@ public class NetworkSimulator {
 
     private Phaser phaser = new Phaser(1);
 
+    private boolean isInterrupted = false;
+
     private boolean DEBUG = false;
 
     public NetworkSimulator(){
@@ -40,6 +42,10 @@ public class NetworkSimulator {
 
             for(int i = 0; i < totalDelay + 1; i++){
                 phaser.arriveAndAwaitAdvance();
+                if(isInterrupted){
+                    phaser.arriveAndDeregister();
+                    return;
+                }
             }
 
             stubs.get(destination).accept(time, message);
@@ -87,5 +93,13 @@ public class NetworkSimulator {
         int leftDirectionDelay = Math.floorMod(sourceIndex - destIndex, innerRing.size());
 
         return totalDelay + Math.min(rightDirectionDelay, leftDirectionDelay);
+    }
+
+    public void restart(){
+        time = 0;
+        isInterrupted = true;
+        phaser.arriveAndAwaitAdvance();
+        phaser.arriveAndAwaitAdvance();
+        isInterrupted = false;
     }
 }

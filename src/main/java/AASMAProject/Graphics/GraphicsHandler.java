@@ -197,7 +197,7 @@ public class GraphicsHandler extends Application {
             String id = graphVertex.getUnderlyingVertex().element();
 
             if(id.startsWith("FD")){
-                statisticsDialog.setStatisticsAndShow(environment.getFaultDetectorStatistics(id));
+                statisticsDialog.setStatisticsAndShow(environment.getFaultDetectorStatistics(Integer.valueOf(id.split("FD")[1])));
             }
         });
 

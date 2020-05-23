@@ -19,23 +19,13 @@ public class FaultDetectorStatistics {
 
             double oldAverage = averageForDetection;
 
-            averageForDetection = updateAverage(averageForDetection, timeForPrediction);
-            varianceForDetection = updateVariance(varianceForDetection,  averageForDetection, oldAverage, timeForPrediction);
+            averageForDetection = StatisticsCalculator.updateAverage(averageForDetection, incorrectPredictions + correctPredictions, timeForPrediction);
+            varianceForDetection = StatisticsCalculator.updateVariance(varianceForDetection,  averageForDetection, oldAverage, incorrectPredictions + correctPredictions ,timeForPrediction);
 
         }else{
             incorrectPredictions++;
         }
     }
-
-    private double updateAverage(double oldAverage, int newPoint){
-        return oldAverage + (newPoint - oldAverage) / (correctPredictions + incorrectPredictions);
-    }
-
-    private double updateVariance(double oldVariance, double average, double oldAverage, int newPoint){
-        int numDataPoints = correctPredictions + incorrectPredictions;
-        return (oldVariance * numDataPoints + (newPoint - average) * (newPoint - oldAverage)) / numDataPoints;
-    }
-
     public String getId() {
         return id;
     }
@@ -53,4 +43,11 @@ public class FaultDetectorStatistics {
         return varianceForDetection;
     }
 
+    public double getStandardDeviationForDetection() {
+        return Math.sqrt(varianceForDetection);
+    }
+
+    public int getNumPredictions(){
+        return correctPredictions + incorrectPredictions;
+    }
 }

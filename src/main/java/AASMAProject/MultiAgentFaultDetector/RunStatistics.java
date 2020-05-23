@@ -1,6 +1,7 @@
 package AASMAProject.MultiAgentFaultDetector;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Properties;
 
 public class RunStatistics {
@@ -54,14 +55,61 @@ public class RunStatistics {
                 agentProperties
         );
 
-        for(int run = 0; run < numRuns; run++){
-            boolean result;
-            for(int tick = 0; tick < ticksPerRun; tick++){
+        invulnerabilityTime = (int) ((double) invulnerabilityTime * 1.5);
+        int currentInvulnerabilityTime = invulnerabilityTime;
+        int statisticsFrequency = 20;
+        int currentStatisticsFrequency = statisticsFrequency-1;
+
+        HashMap<String, Double> statistics = new HashMap<>();
+
+        int numWins = 0;
+        int i = 0;
+
+        for(int run = 1; run <= 4; run++){
+            System.out.println("run: " + run);
+            boolean result = false;
+
+            for(int tick = 1; tick <= ticksPerRun; tick++){
                 result = environment.decision();
+
+                if(currentInvulnerabilityTime > 0){
+                    currentInvulnerabilityTime--;
+                }
+
+                if(currentInvulnerabilityTime == 0 && ++currentStatisticsFrequency == statisticsFrequency){
+                    i++;
+                    System.out.println("tick: " + tick);
+                    currentStatisticsFrequency = 0;
+
+                    HashMap<String, Double> statisticsTick = environment.getStatistics();
+
+                    for(String label : statisticsTick.keySet()){
+                        System.out.println(label + ": " + statisticsTick.get(label));
+
+                        Double old = statistics.get(label);
+                        statistics.put(label, StatisticsCalculator.updateAverage(old == null ? 0. : old, i, statisticsTick.get(label)));
+                    }
+                }
+
                 if(result) break;
             }
 
+            System.out.println("\n\n\n Final statistics of run " + run);
+
+            for(String label : statistics.keySet()){
+                System.out.println(label + ": " + statistics.get(label));
+            }
+
+            if(result){
+                System.out.println("Infected win");
+            }else{
+                numWins++;
+                System.out.println("Agents win");
+            }
+
             environment.restart();
+            currentInvulnerabilityTime = invulnerabilityTime;
+            currentStatisticsFrequency = statisticsFrequency-1;
         }
     }
 }
