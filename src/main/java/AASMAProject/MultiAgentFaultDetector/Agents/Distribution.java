@@ -33,7 +33,7 @@ public class Distribution {
         return varianceSum / numDataPoints;
     }
 
-    public double getProbability(int x){
+    public double getProbability(double x){
         switch (type){
             case NORMAL:
                 return 1 - (new NormalDistribution(getMean(), Math.sqrt(getVariance())).cumulativeProbability(x));

@@ -13,7 +13,6 @@ public class FaultDetectorMemory extends FaultDetector {
 
     //ping variables
     private long frequencyPing;
-    private Distribution.Type distributionType;
 
     private HashMap<String, Double> trustServers;
     private HashMap<String, Double> trustFDs;
@@ -25,13 +24,14 @@ public class FaultDetectorMemory extends FaultDetector {
     private boolean debug = false;
 
     private HashMap<String, PingInfo> pingInformation = new HashMap<>();
+    private int numSavedPings;
 
 
     public FaultDetectorMemory(String id, NetworkSimulator networkSimulator, int numNeighbours, double probInsideInfection, Properties agentProperties) {
         super(id, networkSimulator, numNeighbours, probInsideInfection);
         this.frequencyPing = Long.parseLong(agentProperties.getProperty("pingTime"));
-        this.distributionType = Distribution.Type.NORMAL;
         this.trustThreshold = Double.parseDouble(agentProperties.getProperty("trustThreshold"));
+        this.numSavedPings = Integer.parseInt(agentProperties.getProperty("numSavedPings"));
     }
 
 
@@ -82,6 +82,8 @@ public class FaultDetectorMemory extends FaultDetector {
 
         pingInfo.addDistributionData(time);
 
+        pingInformation.get(server).updateMemoryLastPings(time);
+
         updateTrust(time, server);
 
         pingInfo.setWaitingForPing(false);
@@ -95,14 +97,15 @@ public class FaultDetectorMemory extends FaultDetector {
             return;
         }
 
-        int waitedTime = time - pingInfo.getLastPing();
-        double p = pingInfo.getDistributionProbability(waitedTime) * 100;
+        double p = pingInfo.getDistributionProbability(pingInfo.getMemoryLastPingsMean()) * 100;
 
         if(p < normalThreshold){
             p = (p / normalThreshold) * 50;
         } else {
             p = 50 + ((p - normalThreshold) / (100 - normalThreshold)) * 50;
         }
+
+        System.out.println("UPDATING TRUST, mean of last pings: " + pingInfo.getMemoryLastPingsMean() + " p="+ p);
 
         trustServers.replace(server, p);
     }
@@ -148,7 +151,7 @@ public class FaultDetectorMemory extends FaultDetector {
         super.restart();
 
         for(String server : pingInformation.keySet()){
-            pingInformation.replace(server, new PingInfo(frequencyPing, -1, new Distribution(distributionType)));
+            pingInformation.replace(server, new PingInfo(frequencyPing, -1, new Distribution(Distribution.Type.NORMAL), numSavedPings));
             trustServers.replace(server, 100.0);
         }
 
@@ -172,9 +175,17 @@ public class FaultDetectorMemory extends FaultDetector {
         this.trustFDs = new HashMap<>(faultDetectors.size());
 
         for(int i = 0; i < servers.size(); i++){
-            pingInformation.put(servers.get(i), new PingInfo(frequencyPing, -1, new Distribution(distributionType)));
+            pingInformation.put(servers.get(i), new PingInfo(frequencyPing, -1, new Distribution(Distribution.Type.NORMAL), numSavedPings));
             trustServers.put(servers.get(i), 100.0);
             trustFDs.put(faultDetectors.get(i), 100.0);
         }
+    }
+
+    private void printList(String server, ArrayList<Integer> list){
+        System.out.print("List: ");
+        for(Integer i : list){
+            System.out.print(i + ", ");
+        }
+        System.out.println("\n");
     }
 }
