@@ -21,8 +21,8 @@ public class FaultDetectorStatistics {
 
             double oldAverage = averageForDetection;
 
-            averageForDetection = StatisticsCalculator.updateAverage(averageForDetection, incorrectPredictions + correctPredictions, timeForPrediction);
-            varianceForDetection = StatisticsCalculator.updateVariance(varianceForDetection,  averageForDetection, oldAverage, incorrectPredictions + correctPredictions ,timeForPrediction);
+            averageForDetection = StatisticsCalculator.updateAverage(averageForDetection, correctPredictions, timeForPrediction);
+            varianceForDetection = StatisticsCalculator.updateVariance(varianceForDetection,  averageForDetection, oldAverage, correctPredictions, timeForPrediction);
 
         }else{
             incorrectPredictions++;
