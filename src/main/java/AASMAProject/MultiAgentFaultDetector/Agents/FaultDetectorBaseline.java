@@ -122,7 +122,7 @@ public class FaultDetectorBaseline extends FaultDetector {
     }
 
     @Override
-    public void processQuorumResults(HashMap<String, Boolean> votes) {
+    public void processQuorumResults(HashMap<String, Boolean> votes, String suspectedServer) {
         Boolean myVote = votes.get(getId());
 
         if(myVote == null) return;

@@ -27,7 +27,6 @@ public abstract class FaultDetector {
     private ArrayList<PairInfo> neighbours;
 
     private boolean isInvulnerable = true;
-
     private double probInsideInfection;
 
     //crashed variables
@@ -45,6 +44,8 @@ public abstract class FaultDetector {
                 return new FaultDetectorLearnPing(id, networkSimulator, numNeighbours, probInsideInfection, agentProperties);
             case "memory":
                 return new FaultDetectorMemory(id, networkSimulator, numNeighbours, probInsideInfection, agentProperties);
+            case "perfect":
+                return new FaultDetectorPerfect(id, networkSimulator, numNeighbours, probInsideInfection, agentProperties);
         }
         return null;
     }
@@ -57,7 +58,6 @@ public abstract class FaultDetector {
         this.quorums = new HashMap<>();
         this.statistics = new FaultDetectorStatistics(id);
         this.probInsideInfection = probInsideInfection;
-
     }
 
     public void decide(int time, CountDownLatch numProcessing){
@@ -273,7 +273,7 @@ public abstract class FaultDetector {
 
                     quorums.remove(content.getKey());
 
-                    processQuorumResults(q.getVotes());
+                    processQuorumResults(q.getVotes(), info.getServerID());
                 }
 
                 break;
@@ -308,7 +308,7 @@ public abstract class FaultDetector {
     }
 
     public abstract void rebootPair(int time, String server);
-    public abstract void processQuorumResults(HashMap<String, Boolean> votes);
+    public abstract void processQuorumResults(HashMap<String, Boolean> votes, String suspectedServer);
 
     private void evaluateServers(int time){
         for(PairInfo info : pairInfos){
@@ -462,6 +462,14 @@ public abstract class FaultDetector {
 
     public void setInvulnerable(boolean invulnerable) {
         isInvulnerable = invulnerable;
+    }
+
+    public double getProbInsideInfection() {
+        return probInsideInfection;
+    }
+
+    public NetworkSimulator getNetworkSimulator() {
+        return networkSimulator;
     }
 
     public ArrayList<PairInfo> getPairInfos() {
