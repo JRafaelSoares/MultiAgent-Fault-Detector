@@ -55,9 +55,9 @@ public class FaultDetectorPerfect extends FaultDetector {
 
         if(Environment.DEBUG || debug) System.out.println("\ttrust of " + server + " = " + serverTrust);
         if(Environment.DEBUG || debug) System.out.println("\ttrust of " + faultDetector + " = " + fdTrust);
-
-        return serverTrust < trustThreshold ||
-                fdTrust < trustThreshold;
+// ||
+//                fdTrust < trustThreshold
+        return serverTrust < trustThreshold;
     }
 
     @Override

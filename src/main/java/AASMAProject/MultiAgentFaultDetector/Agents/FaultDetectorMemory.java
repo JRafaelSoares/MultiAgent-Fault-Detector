@@ -44,8 +44,6 @@ public class FaultDetectorMemory extends FaultDetector {
 
     @Override
     public boolean isInfected(int time, String server) {
-        updateTrust(time, server);
-
         String faultDetector = getIndexedPairInfos().get(server).getFaultDetectorID();
 
         double fdTrust = trustFDs.get(faultDetector);
@@ -55,10 +53,17 @@ public class FaultDetectorMemory extends FaultDetector {
 
         PingInfo pingInfo = pingInformation.get(server);
 
+        double totalMean = pingInfo.getDistributionMean();
         double totalVar = pingInfo.getDistributionVar();
-        Double kVar = pingInfo.getMemoryLastPingsVar();
+        Double kMean = pingInfo.getMemoryAverage();
+        Double kVar = pingInfo.getMemoryVariance();
 
-        return (kVar != null && totalVar > kVar * multiplierVar) ||
+        if(totalMean == 0) return false;
+
+        double meanDelta = Math.abs(kMean - totalMean);
+        //double varDelta = Math.abs(kVar - totalVar);
+
+        return (meanDelta > multiplierVar) ||
                 fdTrust < trustThreshold;
     }
 
@@ -85,17 +90,9 @@ public class FaultDetectorMemory extends FaultDetector {
 
         if(Environment.DEBUG || debug) System.out.println("\t["+ getId() + "][" + server + "] added point " + (time - pingInfo.getLastPing()) + " to " + server);
 
-        pingInfo.addDistributionData(time);
-
-        pingInformation.get(server).updateMemoryLastPings();
-
-        updateTrust(time, server);
+        pingInfo.updateMemory(time);
 
         pingInfo.setWaitingForPing(false);
-    }
-
-    private void updateTrust(int time, String server){
-
     }
 
 

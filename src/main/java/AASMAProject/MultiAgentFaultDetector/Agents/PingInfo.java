@@ -12,7 +12,7 @@ public class PingInfo {
     private Distribution distribution;
 
     // for memory agent
-    private ArrayList<Double> lastVars;
+    private ArrayList<Integer> lastPings;
     private int numSavedPings;
 
     public PingInfo(long frequencyPing, int lastPing, Distribution distribution){
@@ -25,7 +25,7 @@ public class PingInfo {
         this.frequencyPing = frequencyPing;
         this.lastPing = lastPing;
         this.distribution = distribution;
-        this.lastVars = new ArrayList<>(numSavedPings);
+        this.lastPings = new ArrayList<>(numSavedPings);
         this.numSavedPings = numSavedPings;
     }
 
@@ -57,13 +57,17 @@ public class PingInfo {
         return distribution.getProbability(waitedTime);
     }
 
-    public void updateMemoryLastPings(){
 
-        if(lastVars.size() == numSavedPings){
-            lastVars.add(0, distribution.getVariance());
-            lastVars.remove(numSavedPings - 1);
+
+    // For memory agent
+    public void updateMemory(int time){
+
+        if(lastPings.size() == numSavedPings){
+            lastPings.add(0, time - lastPing);
+            distribution.addData(lastPings.get(numSavedPings));
+            lastPings.remove(numSavedPings - 1);
         } else{
-            lastVars.add(distribution.getVariance());
+            lastPings.add(time - lastPing);
         }
 
     }
@@ -72,11 +76,33 @@ public class PingInfo {
 
     public double getDistributionVar(){ return distribution.getVariance(); }
 
-    public Double getMemoryLastPingsVar(){ return lastVars.size() != 0 ? lastVars.get(lastVars.size() - 1) : null; }
+    public double getMemoryAverage(){
+        double sum = 0;
+
+        for(int i = 0; i < lastPings.size(); i++){
+            sum += lastPings.get(i);
+        }
+
+        return sum / lastPings.size();
+    }
+
+    public Double getMemoryVariance(){
+        double variance = 0;
+        double average = 0;
+
+        for(int i = 0; i < lastPings.size(); i++){
+            int newPoint = lastPings.get(i);
+            double oldAverage = average;
+            average = StatisticsCalculator.updateAverage(average, i + 1, newPoint);
+            variance = StatisticsCalculator.updateVariance(variance, average, oldAverage, i + 1, newPoint);
+        }
+
+        return variance;
+    }
 
     public void restart(int time){
         waitingForPing = false;
         lastPing = time;
-        lastVars = new ArrayList<>();
+        lastPings = new ArrayList<>();
     }
 }
