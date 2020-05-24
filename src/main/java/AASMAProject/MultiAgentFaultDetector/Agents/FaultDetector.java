@@ -328,7 +328,7 @@ public abstract class FaultDetector {
 
             int timeForPredictionWithoutDistance = InfectedNetwork.timeInfected(time, info.getServerID()) - 2 * networkSimulator.getDistanceDelay(id, info.getServerID());
 
-            statistics.addPrediction(InfectedNetwork.contains(info.getServerID()), timeForPredictionWithoutDistance);
+            statistics.addPrediction(InfectedNetwork.contains(info.getServerID()) || InfectedNetwork.contains(info.getFaultDetectorID()), timeForPredictionWithoutDistance);
 
             createQuorum(info.getServerID());
         }

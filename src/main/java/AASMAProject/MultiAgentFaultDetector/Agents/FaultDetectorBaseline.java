@@ -117,7 +117,7 @@ public class FaultDetectorBaseline extends FaultDetector {
     @Override
     public void rebootPair(int time, String server) {
         trustServers.replace(server, 100.0);
-        trustServers.replace(getIndexedPairInfos().get(server).getFaultDetectorID(), 100.0);
+        trustFDs.replace(getIndexedPairInfos().get(server).getFaultDetectorID(), 100.0);
         pingInformation.get(server).restart(time);
     }
 
