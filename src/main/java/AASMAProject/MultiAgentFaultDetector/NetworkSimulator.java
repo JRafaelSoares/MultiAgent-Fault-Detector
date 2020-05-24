@@ -2,6 +2,7 @@ package AASMAProject.MultiAgentFaultDetector;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Phaser;
 import java.util.function.BiConsumer;
 
@@ -12,9 +13,10 @@ public class NetworkSimulator {
     private ArrayList<String> innerRing;
     private ArrayList<String> outerRing;
 
-    private Phaser phaser = new Phaser(1);
+    private ArrayList<CountDownLatch> latches = new ArrayList<>();
+    private CountDownLatch tickLatch;
 
-    private boolean isInterrupted = false;
+    private boolean restarting = false;
 
     private boolean DEBUG = false;
 
@@ -33,45 +35,80 @@ public class NetworkSimulator {
     }
 
     public void sendMessage(String destination, Message message, int delay){
-        if(DEBUG && Environment.DEBUG) System.out.println("[NET-SIM] sending message from " + message.getSource() + " to " + destination);
+
+        if(restarting) return;
 
         int totalDelay = delay + getDistanceDelay(message.getSource(), destination);
 
-        new Thread(() -> {
-            phaser.register();
+        CountDownLatch latch = new CountDownLatch(totalDelay);
 
-            for(int i = 0; i < totalDelay + 1; i++){
-                phaser.arriveAndAwaitAdvance();
-                if(isInterrupted){
-                    phaser.arriveAndDeregister();
-                    return;
-                }
+        synchronized (latches){
+            latches.add(latch);
+        }
+
+        if(DEBUG && Environment.DEBUG) System.out.println("[NET-SIM] sending message from " + message.getSource() + " to " + destination + " with delay " + totalDelay);
+
+        new Thread(() -> {
+            try {
+                latch.await();
+            } catch (InterruptedException e) {
+                System.out.println("Couldn't wait for delay");
+                return;
             }
 
-            stubs.get(destination).accept(time, message);
-            phaser.arriveAndDeregister();
+            if(!restarting){
+                if(DEBUG && Environment.DEBUG) System.out.println("[NET-SIM] sending message from " + message.getSource() + " to " + destination + " NOW " + time);
+                stubs.get(destination).accept(time, message);
+            }
+
+            tickLatch.countDown();
         }).start();
     }
 
     public void sendAdminMessage(String destination, Message message){
+        if(restarting) return;
+
         if(DEBUG && Environment.DEBUG) System.out.println("[NET-SIM] sending admin message from " + message.getSource() + " to " + destination);
 
-        new Thread(() -> {
-            phaser.register();
-
-            stubs.get(destination).accept(time, message);
-
-            phaser.arriveAndDeregister();
-        }).start();
+        stubs.get(destination).accept(time, message);
     }
 
     public void tick(){
         time++;
+        if(DEBUG && Environment.DEBUG) System.out.println("[NET-SIM] time = " + time);
     }
 
     public void awaitFinish(){
         if(DEBUG && Environment.DEBUG) System.out.println("[NET-SIM] waiting for messages to finish ");
-        phaser.arriveAndAwaitAdvance();
+
+        ArrayList<CountDownLatch> toBeRemoved = new ArrayList<>();
+
+        int readyCount = 0;
+
+        synchronized (latches){
+            for(CountDownLatch latch : latches){
+                if(latch.getCount() == 1){
+                    readyCount++;
+                    toBeRemoved.add(latch);
+                }
+            }
+
+            tickLatch = new CountDownLatch(readyCount);
+
+            for(CountDownLatch latch : latches){
+                latch.countDown();
+            }
+        }
+
+        try {
+            tickLatch.await();
+        } catch (InterruptedException e) {
+            System.out.println("Couldn't wait for");
+        }
+
+        latches.removeAll(toBeRemoved);
+
+        if(DEBUG && Environment.DEBUG) System.out.println("[NET-SIM] finished messages ");
     }
 
     public int getDistanceDelay(String source, String destination){
@@ -97,9 +134,23 @@ public class NetworkSimulator {
 
     public void restart(){
         time = 0;
-        isInterrupted = true;
-        phaser.arriveAndAwaitAdvance();
-        phaser.arriveAndAwaitAdvance();
-        isInterrupted = false;
+        restarting = true;
+
+        tickLatch = new CountDownLatch(latches.size());
+
+        for(CountDownLatch latch : latches){
+            long count = latch.getCount();
+            for(int i = 0; i < count; i++){
+                latch.countDown();
+            }
+        }
+
+        try {
+            tickLatch.await();
+        } catch (InterruptedException e) {
+            System.out.println("Couldn't wait for");
+        }
+
+        restarting = false;
     }
 }
