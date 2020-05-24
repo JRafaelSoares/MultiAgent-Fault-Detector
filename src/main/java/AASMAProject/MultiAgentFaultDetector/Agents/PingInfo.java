@@ -64,7 +64,7 @@ public class PingInfo {
 
         if(lastPings.size() == numSavedPings){
             lastPings.add(0, time - lastPing);
-            distribution.addData(lastPings.get(numSavedPings));
+            distribution.addData(lastPings.get(numSavedPings - 1));
             lastPings.remove(numSavedPings - 1);
         } else{
             lastPings.add(time - lastPing);
