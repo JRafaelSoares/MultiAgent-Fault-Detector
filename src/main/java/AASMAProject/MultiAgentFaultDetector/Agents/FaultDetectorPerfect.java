@@ -107,9 +107,9 @@ public class FaultDetectorPerfect extends FaultDetector {
 
         double p = trustServers.get(server);
 
-        if(waitedTime > serverMaxTimeToAnswer + 2 * distance + 1){
+        if(waitedTime > serverMaxTimeToAnswer + 2 * distance){
             p = 0;
-        } else if(waitedTime < serverMinTimeToAnswer + infectedDelay + 2 * distance + 1){
+        } else if(waitedTime < serverMinTimeToAnswer + infectedDelay + 2 * distance){
             p = 100;
         } else{
             // Overlapping times

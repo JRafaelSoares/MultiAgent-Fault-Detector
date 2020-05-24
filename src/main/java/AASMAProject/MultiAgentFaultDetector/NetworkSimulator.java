@@ -40,7 +40,7 @@ public class NetworkSimulator {
 
         int totalDelay = delay + getDistanceDelay(message.getSource(), destination);
 
-        CountDownLatch latch = new CountDownLatch(totalDelay);
+        CountDownLatch latch = new CountDownLatch(totalDelay + 1);
 
         synchronized (latches){
             latches.add(latch);
@@ -150,6 +150,8 @@ public class NetworkSimulator {
         } catch (InterruptedException e) {
             System.out.println("Couldn't wait for");
         }
+
+        latches.clear();
 
         restarting = false;
     }

@@ -106,7 +106,10 @@ public class Environment {
     public boolean decision(){
         deciding.lock();
 
-        if(infectedWin) return true;
+        if(infectedWin){
+            deciding.unlock();
+            return true;
+        }
 
         numFinished = new CountDownLatch(listPair.size());
 

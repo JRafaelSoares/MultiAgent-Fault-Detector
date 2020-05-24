@@ -95,6 +95,8 @@ public class StatisticsHandler {
             currentInvulnerabilityTime = invulnerabilityTime;
             currentStatisticsFrequency = 0;
             environment.restart();
+
+            System.out.println(run);
         }
 
         csvWriter.writeAll(runStatistics.getStats());

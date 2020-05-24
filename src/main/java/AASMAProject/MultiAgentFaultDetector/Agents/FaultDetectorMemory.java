@@ -105,8 +105,6 @@ public class FaultDetectorMemory extends FaultDetector {
             p = 50 + ((p - normalThreshold) / (100 - normalThreshold)) * 50;
         }
 
-        System.out.println("UPDATING TRUST, mean of last pings: " + pingInfo.getMemoryLastPingsMean() + " p="+ p);
-
         trustServers.replace(server, p);
     }
 
