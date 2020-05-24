@@ -12,9 +12,8 @@ public class PingInfo {
     private Distribution distribution;
 
     // for memory agent
-    private ArrayList<Integer> lastPings;
+    private ArrayList<Double> lastVars;
     private int numSavedPings;
-    private double mean = 0.;
 
     public PingInfo(long frequencyPing, int lastPing, Distribution distribution){
         this.frequencyPing = frequencyPing;
@@ -26,7 +25,7 @@ public class PingInfo {
         this.frequencyPing = frequencyPing;
         this.lastPing = lastPing;
         this.distribution = distribution;
-        this.lastPings = new ArrayList<>(numSavedPings);
+        this.lastVars = new ArrayList<>(numSavedPings);
         this.numSavedPings = numSavedPings;
     }
 
@@ -58,32 +57,26 @@ public class PingInfo {
         return distribution.getProbability(waitedTime);
     }
 
-    public ArrayList<Integer> getLastPings(){
-        return lastPings;
-    }
+    public void updateMemoryLastPings(){
 
-    public void updateMemoryLastPings(int time){
-        int waitedTime = time - lastPing;
-
-        if(lastPings.size() == numSavedPings){
-            mean = (mean * numSavedPings + waitedTime - lastPings.get(numSavedPings - 1)) / numSavedPings;
-
-            lastPings.add(0, waitedTime);
-            lastPings.remove(numSavedPings - 1);
+        if(lastVars.size() == numSavedPings){
+            lastVars.add(0, distribution.getVariance());
+            lastVars.remove(numSavedPings - 1);
         } else{
-            lastPings.add(waitedTime);
-            mean = StatisticsCalculator.updateAverage(mean, lastPings.size(), waitedTime);
+            lastVars.add(distribution.getVariance());
         }
 
     }
 
     public double getDistributionMean(){ return distribution.getMean(); }
 
-    public double getMemoryLastPingsMean(){ return mean; }
+    public double getDistributionVar(){ return distribution.getVariance(); }
+
+    public Double getMemoryLastPingsVar(){ return lastVars.size() != 0 ? lastVars.get(lastVars.size() - 1) : null; }
 
     public void restart(int time){
         waitingForPing = false;
         lastPing = time;
-        lastPings = new ArrayList<>();
+        lastVars = new ArrayList<>();
     }
 }
