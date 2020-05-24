@@ -46,7 +46,7 @@ public class NetworkSimulator {
             latches.add(latch);
         }
 
-        if(DEBUG && Environment.DEBUG) System.out.println("[NET-SIM] sending message from " + message.getSource() + " to " + destination + " with delay " + totalDelay);
+        if(DEBUG || Environment.DEBUG) System.out.println("[NET-SIM] sending message from " + message.getSource() + " to " + destination + " with delay " + totalDelay);
 
         new Thread(() -> {
             try {
@@ -57,7 +57,7 @@ public class NetworkSimulator {
             }
 
             if(!restarting){
-                if(DEBUG && Environment.DEBUG) System.out.println("[NET-SIM] sending message from " + message.getSource() + " to " + destination + " NOW " + time);
+                if(DEBUG || Environment.DEBUG) System.out.println("[NET-SIM] sending message from " + message.getSource() + " to " + destination + " NOW " + time);
                 stubs.get(destination).accept(time, message);
             }
 
@@ -68,24 +68,28 @@ public class NetworkSimulator {
     public void sendAdminMessage(String destination, Message message){
         if(restarting) return;
 
-        if(DEBUG && Environment.DEBUG) System.out.println("[NET-SIM] sending admin message from " + message.getSource() + " to " + destination);
+        if(DEBUG || Environment.DEBUG) System.out.println("[NET-SIM] sending admin message from " + message.getSource() + " to " + destination);
 
         stubs.get(destination).accept(time, message);
     }
 
     public void tick(){
         time++;
-        if(DEBUG && Environment.DEBUG) System.out.println("[NET-SIM] time = " + time);
+        if(DEBUG || Environment.DEBUG) System.out.println("[NET-SIM] time = " + time);
     }
 
     public void awaitFinish(){
-        if(DEBUG && Environment.DEBUG) System.out.println("[NET-SIM] waiting for messages to finish ");
+        if(DEBUG || Environment.DEBUG) System.out.println("[NET-SIM] waiting for messages to finish ");
 
         ArrayList<CountDownLatch> toBeRemoved = new ArrayList<>();
 
         int readyCount = 0;
 
+        int prevSize;
+
         synchronized (latches){
+            prevSize = latches.size();
+
             for(CountDownLatch latch : latches){
                 if(latch.getCount() == 1){
                     readyCount++;
@@ -100,15 +104,20 @@ public class NetworkSimulator {
             }
         }
 
+
         try {
             tickLatch.await();
         } catch (InterruptedException e) {
             System.out.println("Couldn't wait for");
         }
 
+        for(int i = prevSize; i < latches.size(); i++){
+            latches.get(i).countDown();
+        }
+
         latches.removeAll(toBeRemoved);
 
-        if(DEBUG && Environment.DEBUG) System.out.println("[NET-SIM] finished messages ");
+        if(DEBUG || Environment.DEBUG) System.out.println("[NET-SIM] finished messages ");
     }
 
     public int getDistanceDelay(String source, String destination){

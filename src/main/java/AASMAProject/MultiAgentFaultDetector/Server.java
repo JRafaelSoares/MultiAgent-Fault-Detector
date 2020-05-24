@@ -126,6 +126,7 @@ public class Server {
         switch(m.getType()){
             //Bring back online
             case reviveResponse:
+                InfectedNetwork.deregister(id);
                 state = State.HEALTHY;
                 break;
         }
@@ -142,11 +143,6 @@ public class Server {
         switch (m.getType()){
             case removeServer:
                 if(DEBUG && Environment.DEBUG) System.out.println("[" + id + "] Received removal notice from " + m.getSource());
-
-                if(state.equals(State.INFECTED)){
-                    InfectedNetwork.deregister(id);
-                }
-
                 state = State.REMOVED;
 
                 break;

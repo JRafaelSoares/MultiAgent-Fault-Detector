@@ -21,7 +21,7 @@ public class FaultDetectorMemory extends FaultDetector {
     private double normalThreshold = 1;
     private double learningRate = 0.1;
 
-    private boolean debug = true;
+    private boolean debug = false;
 
     private HashMap<String, PingInfo> pingInformation = new HashMap<>();
     private int numSavedPings;
@@ -58,12 +58,10 @@ public class FaultDetectorMemory extends FaultDetector {
         Double kMean = pingInfo.getMemoryAverage();
         Double kVar = pingInfo.getMemoryVariance();
 
-        if(totalMean == 0) return false;
-
         double meanDelta = Math.abs(kMean - totalMean);
         //double varDelta = Math.abs(kVar - totalVar);
 
-        System.out.println("t = " + time + "[" + getId() + "][" + server + "]\ttotalMean: " + totalMean + " kmean: " + kMean + " totalVar: " + totalVar + " kVar: " + kVar);
+        //System.out.println("t = " + time + "[" + getId() + "][" + server + "]\ttotalMean: " + totalMean + " kmean: " + kMean + " totalVar: " + totalVar + " kVar: " + kVar);
 
         return (meanDelta > multiplierVar) ||
                 fdTrust < trustThreshold;
@@ -73,7 +71,7 @@ public class FaultDetectorMemory extends FaultDetector {
     public void decidePing(int time, String server) {
         PingInfo pingInfo = pingInformation.get(server);
 
-        if(!pingInfo.isTimeToPing(time)){
+        if(!pingInfo.isWaitingForPing()/*pingInfo.isTimeToPing(time)*/){
             if(Environment.DEBUG || debug) System.out.println("\tsent ping request to " + server);
             pingInfo.setWaitingForPing(true);
             pingInfo.setLastPing(time);

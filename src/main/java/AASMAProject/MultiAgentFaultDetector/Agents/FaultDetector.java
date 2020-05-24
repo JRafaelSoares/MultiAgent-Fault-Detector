@@ -182,6 +182,8 @@ public abstract class FaultDetector {
                     pairInfos.get(myServer).setState(State.HEALTHY);
 
                     rebootPair(time, myServerID);
+
+                    InfectedNetwork.deregister(id);
                 }
 
                 recalculateNeighbours();
@@ -262,10 +264,6 @@ public abstract class FaultDetector {
 
                             sendAdminMessage(myServerID, Message.Type.removeServer);
 
-                            if(state.equals(State.INFECTED)){
-                                InfectedNetwork.deregister(id);
-                            }
-
                             state = State.REMOVED;
                             timeRemoved = 0;
                         }
@@ -324,7 +322,7 @@ public abstract class FaultDetector {
 
     private void evaluateNeighbour(int time, PairInfo info){
         if(!isInvulnerable && !quorums.containsKey(id + ":" + info.getServerID()) && isInfected(time, info.getServerID())){
-            if(Environment.DEBUG) System.out.println("[" + id + "]" + " caught " + info.getServerID());
+            if(Environment.DEBUG) System.out.println("[" + id + "]" + " caught " + info.getServerID() + " " + (InfectedNetwork.contains(info.getServerID()) || InfectedNetwork.contains(info.getFaultDetectorID())));
 
             int timeForPredictionWithoutDistance = InfectedNetwork.timeInfected(time, info.getServerID()) - 2 * networkSimulator.getDistanceDelay(id, info.getServerID());
 

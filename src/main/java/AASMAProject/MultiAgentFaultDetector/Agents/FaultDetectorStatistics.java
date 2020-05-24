@@ -34,7 +34,7 @@ public class FaultDetectorStatistics {
 
     public double getAccuracy(){
         if(correctPredictions + incorrectPredictions == 0) return 100;
-        return (double) correctPredictions / (correctPredictions + incorrectPredictions);
+        return (double) correctPredictions / (correctPredictions + incorrectPredictions) * 100;
     }
 
     public double getAverageForDetection() {

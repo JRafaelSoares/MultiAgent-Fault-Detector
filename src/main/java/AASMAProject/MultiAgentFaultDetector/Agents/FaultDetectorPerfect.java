@@ -108,13 +108,14 @@ public class FaultDetectorPerfect extends FaultDetector {
         double p = trustServers.get(server);
 
         if(waitedTime > serverMaxTimeToAnswer + 2 * distance){
+            if(!InfectedNetwork.contains(server)) System.out.println("[" + getId() + "] DESCONFIO DE " + server + " " + waitedTime + " > " + (serverMaxTimeToAnswer + 2 * distance));
             p = 0;
-        } else if(waitedTime < serverMinTimeToAnswer + infectedDelay + 2 * distance){
+        } else/* if(waitedTime < serverMinTimeToAnswer + infectedDelay + 2 * distance)*/{
             p = 100;
-        } else{
+        }/* else{
             // Overlapping times
             p *= (double)(serverMinTimeToAnswer + infectedDelay - serverMaxTimeToAnswer + 1) / (serverMaxTimeToAnswer - serverMinTimeToAnswer + 1);
-        }
+        }*/
 
         trustServers.replace(server, p);
     }

@@ -106,6 +106,8 @@ public class Environment {
     public boolean decision(){
         deciding.lock();
 
+        //System.out.println("\n\nt = " + currentTime);
+
         if(infectedWin){
             deciding.unlock();
             return true;
@@ -145,17 +147,21 @@ public class Environment {
         double timeForDetection = 0.;
 
         int i = 0;
+
         for(Pair pair : listPair){
-            i++;
 
             FaultDetectorStatistics statistics = pair.getFaultDetector().getStatistics();
 
             if(statistics.getNumPredictions() == 0) continue;
 
+            i++;
+
             accuracy = StatisticsCalculator.updateAverage(accuracy, i, statistics.getAccuracy());
             timeForDetection = StatisticsCalculator.updateAverage(timeForDetection, i, statistics.getAverageForDetection());
 
         }
+
+        if(accuracy == 0.) accuracy = 100;
 
         res.put("Accuracy", accuracy);
         res.put("Time for detection", timeForDetection);
