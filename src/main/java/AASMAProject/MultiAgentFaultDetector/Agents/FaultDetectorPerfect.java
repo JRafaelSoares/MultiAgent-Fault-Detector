@@ -56,8 +56,9 @@ public class FaultDetectorPerfect extends FaultDetector {
         if(Environment.DEBUG || debug) System.out.println("\ttrust of " + server + " = " + serverTrust);
         if(Environment.DEBUG || debug) System.out.println("\ttrust of " + faultDetector + " = " + fdTrust);
 // ||
-//                fdTrust < trustThreshold
-        return serverTrust < trustThreshold;
+//
+        return serverTrust <= trustThreshold ||
+                fdTrust <= trustThreshold;
     }
 
     @Override
@@ -151,7 +152,7 @@ public class FaultDetectorPerfect extends FaultDetector {
                 if(myVote == vote.getValue()){
                     newTrust = 100;
                 } else{
-                    newTrust = trustFDs.get(vote.getKey()) * ((double)(serverMinTimeToAnswer + infectedDelay - serverMaxTimeToAnswer + 1) / (serverMaxTimeToAnswer - serverMinTimeToAnswer + 1));
+                    newTrust = trustFDs.get(vote.getKey()) * ((double)(serverMaxTimeToAnswer - (serverMinTimeToAnswer + infectedDelay) + 1) / (serverMaxTimeToAnswer - serverMinTimeToAnswer + 1));
                 }
             }
 

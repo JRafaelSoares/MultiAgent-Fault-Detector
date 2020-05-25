@@ -11,7 +11,7 @@ public class Server {
     private NetworkSimulator networkSimulator;
 
     private Random random = new Random();
-    private double probInsideInfection = 0.01;
+    private double probInsideInfection;
 
     //ping variables
     private int minTimeAnswer;
