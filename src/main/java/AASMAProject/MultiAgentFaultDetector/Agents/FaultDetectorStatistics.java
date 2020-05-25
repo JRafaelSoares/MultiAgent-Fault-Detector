@@ -28,6 +28,7 @@ public class FaultDetectorStatistics {
             incorrectPredictions++;
         }
     }
+
     public String getId() {
         return id;
     }

@@ -153,15 +153,16 @@ public class Environment {
             FaultDetectorStatistics statistics = pair.getFaultDetector().getStatistics();
 
             if(statistics.getNumPredictions() == 0) continue;
-
             i++;
 
             accuracy = StatisticsCalculator.updateAverage(accuracy, i, statistics.getAccuracy());
             timeForDetection = StatisticsCalculator.updateAverage(timeForDetection, i, statistics.getAverageForDetection());
 
+
         }
 
-        if(accuracy == 0.) accuracy = 100;
+        if(i == 0) accuracy = 100;
+
 
         res.put("Accuracy", accuracy);
         res.put("Time for detection", timeForDetection);
