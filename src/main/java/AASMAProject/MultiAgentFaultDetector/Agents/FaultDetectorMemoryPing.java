@@ -11,9 +11,6 @@ import java.util.Properties;
 
 public class FaultDetectorMemoryPing extends FaultDetector {
 
-    //ping variables
-    private long frequencyPing;
-
     private HashMap<String, Double> trustFDs;
     private double multiplierVar;
     private double trustThreshold;
@@ -28,7 +25,6 @@ public class FaultDetectorMemoryPing extends FaultDetector {
 
     public FaultDetectorMemoryPing(String id, NetworkSimulator networkSimulator, int numNeighbours, double probInsideInfection, Properties agentProperties) {
         super(id, networkSimulator, numNeighbours, probInsideInfection);
-        this.frequencyPing = Long.parseLong(agentProperties.getProperty("pingTime"));
         this.multiplierVar = Double.parseDouble(agentProperties.getProperty("multiplierVar"));
         this.trustThreshold = Double.parseDouble(agentProperties.getProperty("trustThreshold"));
         this.numSavedPings = Integer.parseInt(agentProperties.getProperty("numSavedPings"));
@@ -127,7 +123,7 @@ public class FaultDetectorMemoryPing extends FaultDetector {
         super.restart();
 
         for(String server : pingInformation.keySet()){
-            pingInformation.replace(server, new PingInfo(frequencyPing, -1, new Distribution(Distribution.Type.NORMAL), numSavedPings));
+            pingInformation.replace(server, new PingInfo(-1, -1, new Distribution(Distribution.Type.NORMAL), numSavedPings));
         }
 
         for(String faultDetector : trustFDs.keySet()){
@@ -149,7 +145,7 @@ public class FaultDetectorMemoryPing extends FaultDetector {
         this.trustFDs = new HashMap<>(faultDetectors.size());
 
         for(int i = 0; i < servers.size(); i++){
-            pingInformation.put(servers.get(i), new PingInfo(frequencyPing, -1, new Distribution(Distribution.Type.NORMAL), numSavedPings));
+            pingInformation.put(servers.get(i), new PingInfo(-1, -1, new Distribution(Distribution.Type.NORMAL), numSavedPings));
             trustFDs.put(faultDetectors.get(i), 100.0);
         }
     }
