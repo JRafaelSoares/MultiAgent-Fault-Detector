@@ -40,8 +40,8 @@ public abstract class FaultDetector {
         switch (agentType) {
             case "baseline":
                 return new FaultDetectorBaseline(id, networkSimulator, numNeighbours, probInsideInfection, agentProperties);
-            case "learnPing":
-                return new FaultDetectorLearnPing(id, networkSimulator, numNeighbours, probInsideInfection, agentProperties);
+            case "memoryPing":
+                return new FaultDetectorMemoryPing(id, networkSimulator, numNeighbours, probInsideInfection, agentProperties);
             case "memory":
                 return new FaultDetectorMemory(id, networkSimulator, numNeighbours, probInsideInfection, agentProperties);
             case "perfect":

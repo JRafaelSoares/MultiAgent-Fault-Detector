@@ -9,31 +9,29 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-public class FaultDetectorLearnPing extends FaultDetector {
+public class FaultDetectorMemoryPing extends FaultDetector {
 
     //ping variables
     private long frequencyPing;
-    private Distribution.Type distributionType;
 
-    private HashMap<String, Double> trustServers;
     private HashMap<String, Double> trustFDs;
+    private double multiplierVar;
     private double trustThreshold;
 
-    private double normalThreshold = 1;
-    private double pingLearningRate;
-    private double trustLearningRate;
+    private double learningRate = 0.1;
 
     private boolean debug = false;
 
     private HashMap<String, PingInfo> pingInformation = new HashMap<>();
+    private int numSavedPings;
 
 
-    public FaultDetectorLearnPing(String id, NetworkSimulator networkSimulator, int numNeighbours, double probInsideInfection, Properties agentProperties) {
+    public FaultDetectorMemoryPing(String id, NetworkSimulator networkSimulator, int numNeighbours, double probInsideInfection, Properties agentProperties) {
         super(id, networkSimulator, numNeighbours, probInsideInfection);
-        this.distributionType = Distribution.Type.NORMAL;
+        this.frequencyPing = Long.parseLong(agentProperties.getProperty("pingTime"));
+        this.multiplierVar = Double.parseDouble(agentProperties.getProperty("multiplierVar"));
         this.trustThreshold = Double.parseDouble(agentProperties.getProperty("trustThreshold"));
-        this.pingLearningRate = Double.parseDouble(agentProperties.getProperty("pingLearningRate"));
-        this.trustLearningRate = Double.parseDouble(agentProperties.getProperty("trustLearningRate"));
+        this.numSavedPings = Integer.parseInt(agentProperties.getProperty("numSavedPings"));
     }
 
 
@@ -45,17 +43,20 @@ public class FaultDetectorLearnPing extends FaultDetector {
 
     @Override
     public boolean isInfected(int time, String server) {
-        updateTrust(time, server);
-
         String faultDetector = getIndexedPairInfos().get(server).getFaultDetectorID();
 
-        double serverTrust = trustServers.get(server);
         double fdTrust = trustFDs.get(faultDetector);
 
-        if(Environment.DEBUG || debug) System.out.println("\ttrust of " + server + " = " + serverTrust);
         if(Environment.DEBUG || debug) System.out.println("\ttrust of " + faultDetector + " = " + fdTrust);
 
-        return serverTrust < trustThreshold ||
+
+        PingInfo pingInfo = pingInformation.get(server);
+
+        double totalMean = pingInfo.getDistributionMean();
+        Double kMean = pingInfo.getMemoryAverage();
+
+        double meanDelta = Math.abs(kMean - totalMean);
+        return (meanDelta > multiplierVar) ||
                 fdTrust < trustThreshold;
     }
 
@@ -63,13 +64,11 @@ public class FaultDetectorLearnPing extends FaultDetector {
     public void decidePing(int time, String server) {
         PingInfo pingInfo = pingInformation.get(server);
 
-        synchronized (pingInfo){
-            if(!pingInfo.isWaitingForPing()){
-                if(Environment.DEBUG || debug) System.out.println("\tsent ping request to " + server);
-                pingInfo.setWaitingForPing(true);
-                pingInfo.setLastPing(time);
-                sendMessage(server, Message.Type.pingRequest);
-            }
+        if(!pingInfo.isWaitingForPing()){
+            if(Environment.DEBUG || debug) System.out.println("\tsent ping request to " + server);
+            pingInfo.setWaitingForPing(true);
+            pingInfo.setLastPing(time);
+            sendMessage(server, Message.Type.pingRequest);
         }
     }
 
@@ -77,40 +76,16 @@ public class FaultDetectorLearnPing extends FaultDetector {
     public void processPing(int time, String server) {
         PingInfo pingInfo = pingInformation.get(server);
 
-        synchronized (pingInfo){
-            if(!pingInfo.isWaitingForPing()){
-                if(Environment.DEBUG || debug) System.out.println("\tis not waiting for ping from " + server + ", ignored");
-                return;
-            }
-
-            if(Environment.DEBUG || debug) System.out.println("\tadded point " + (time - pingInfo.getLastPing()) + " to " + server);
-
-            pingInfo.addDistributionData(time);
-
-            updateTrust(time, server);
-
-            pingInfo.setWaitingForPing(false);
-        }
-    }
-
-    private void updateTrust(int time, String server){
-        PingInfo pingInfo = pingInformation.get(server);
-
         if(!pingInfo.isWaitingForPing()){
-            if(Environment.DEBUG || debug) System.out.println("\tis not waiting for ping from " + server + ", no update");
+            if(Environment.DEBUG || debug) System.out.println("\tis not waiting for ping from " + server + ", ignored");
             return;
         }
 
-        int waitedTime = time - pingInfo.getLastPing();
-        double p = pingInfo.getDistributionProbability(waitedTime) * 100;
+        if(Environment.DEBUG || debug) System.out.println("\t["+ getId() + "][" + server + "] added point " + (time - pingInfo.getLastPing()) + " to " + server);
 
-        if(p < normalThreshold){
-            p = (p / normalThreshold) * 50;
-        } else {
-            p = 50 + ((p - normalThreshold) / (100 - normalThreshold)) * 50;
-        }
+        pingInfo.updateMemory(time);
 
-        trustServers.replace(server, p);
+        pingInfo.setWaitingForPing(false);
     }
 
 
@@ -122,8 +97,6 @@ public class FaultDetectorLearnPing extends FaultDetector {
 
     @Override
     public void rebootPair(int time, String server) {
-        trustServers.replace(server, 100.0);
-        trustServers.replace(getIndexedPairInfos().get(server).getFaultDetectorID(), 100.0);
         pingInformation.get(server).restart(time);
     }
 
@@ -134,7 +107,7 @@ public class FaultDetectorLearnPing extends FaultDetector {
         if(myVote == null) return;
 
         for(Map.Entry<String, Boolean> vote : votes.entrySet()){
-            double newTrust = trustFDs.get(vote.getKey()) + (vote.getValue() == myVote ? -trustLearningRate * 100 : trustLearningRate * 100);
+            double newTrust = trustFDs.get(vote.getKey()) + (vote.getValue() == myVote ? -learningRate * 100 : learningRate * 100);
 
             newTrust = ((newTrust < 0) ? 0 : (newTrust > 100) ? 100 : newTrust);
 
@@ -154,8 +127,7 @@ public class FaultDetectorLearnPing extends FaultDetector {
         super.restart();
 
         for(String server : pingInformation.keySet()){
-            pingInformation.replace(server, new PingInfo(frequencyPing, -1, new Distribution(distributionType)));
-            trustServers.replace(server, 100.0);
+            pingInformation.replace(server, new PingInfo(frequencyPing, -1, new Distribution(Distribution.Type.NORMAL), numSavedPings));
         }
 
         for(String faultDetector : trustFDs.keySet()){
@@ -174,13 +146,19 @@ public class FaultDetectorLearnPing extends FaultDetector {
     public void setPairs(ArrayList<String> servers, ArrayList<String> faultDetectors) {
         super.setPairs(servers, faultDetectors);
 
-        this.trustServers = new HashMap<>(servers.size());
         this.trustFDs = new HashMap<>(faultDetectors.size());
 
         for(int i = 0; i < servers.size(); i++){
-            pingInformation.put(servers.get(i), new PingInfo(frequencyPing, -1, new Distribution(distributionType)));
-            trustServers.put(servers.get(i), 100.0);
+            pingInformation.put(servers.get(i), new PingInfo(frequencyPing, -1, new Distribution(Distribution.Type.NORMAL), numSavedPings));
             trustFDs.put(faultDetectors.get(i), 100.0);
         }
+    }
+
+    private void printList(String server, ArrayList<Integer> list){
+        System.out.print("List: ");
+        for(Integer i : list){
+            System.out.print(i + ", ");
+        }
+        System.out.println("\n");
     }
 }

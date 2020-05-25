@@ -29,7 +29,7 @@ public class PropertiesConfigDialog {
     private int numAgents = defaultNumAgents;
     private int defaultQuorumSize = 5;
     private int quorumSize = defaultQuorumSize;
-    private int defaultInvulnerabilityTime = 200;
+    private int defaultInvulnerabilityTime = 300;
     private int invulnerabilityTime = defaultInvulnerabilityTime;
     private double defaultProbInsideInfectionServer = 1;
     private double probInsideInfectionServer = defaultProbInsideInfectionServer;
@@ -39,7 +39,7 @@ public class PropertiesConfigDialog {
     private double probOutsideInfection = defaultProbOutsideInfection;
     private int defaultServerMinTimeToAnswer = 2;
     private int serverMinTimeToAnswer = defaultServerMinTimeToAnswer;
-    private int defaultServerMaxTimeToAnswer = 5;
+    private int defaultServerMaxTimeToAnswer = 6;
     private int serverMaxTimeToAnswer = defaultServerMaxTimeToAnswer;
     private int defaultInfectedDelay = 3;
     private int infectedDelay = defaultInfectedDelay;
