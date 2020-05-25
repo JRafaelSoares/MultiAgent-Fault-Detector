@@ -25,7 +25,7 @@ public class FaultDetectorMemoryPing extends FaultDetector {
 
     public FaultDetectorMemoryPing(String id, NetworkSimulator networkSimulator, int numNeighbours, double probInsideInfection, Properties agentProperties) {
         super(id, networkSimulator, numNeighbours, probInsideInfection);
-        this.multiplierVar = Double.parseDouble(agentProperties.getProperty("multiplierVar"));
+        this.multiplierVar = Double.parseDouble(agentProperties.getProperty("averageDifference"));
         this.trustThreshold = Double.parseDouble(agentProperties.getProperty("trustThreshold"));
         this.numSavedPings = Integer.parseInt(agentProperties.getProperty("numSavedPings"));
     }

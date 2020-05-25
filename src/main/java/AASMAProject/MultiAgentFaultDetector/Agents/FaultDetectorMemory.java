@@ -18,7 +18,6 @@ public class FaultDetectorMemory extends FaultDetector {
     private double averageDifference;
     private double trustThreshold;
 
-    private double normalThreshold = 1;
     private double learningRate = 0.1;
 
     private boolean debug = false;
@@ -60,8 +59,6 @@ public class FaultDetectorMemory extends FaultDetector {
 
         double meanDelta = Math.abs(kMean - totalMean);
         //double varDelta = Math.abs(kVar - totalVar);
-
-        System.out.println("t = " + time + "[" + getId() + "][" + server + "]\ttotalMean: " + totalMean + " kmean: " + kMean + " totalVar: " + totalVar + " kVar: " + kVar);
 
         return (meanDelta > averageDifference) ||
                 fdTrust < trustThreshold;
