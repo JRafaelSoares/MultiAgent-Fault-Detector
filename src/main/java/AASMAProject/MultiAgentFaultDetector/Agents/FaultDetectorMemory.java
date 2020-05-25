@@ -15,7 +15,7 @@ public class FaultDetectorMemory extends FaultDetector {
     private long frequencyPing;
 
     private HashMap<String, Double> trustFDs;
-    private double multiplierVar;
+    private double averageDifference;
     private double trustThreshold;
 
     private double normalThreshold = 1;
@@ -30,7 +30,7 @@ public class FaultDetectorMemory extends FaultDetector {
     public FaultDetectorMemory(String id, NetworkSimulator networkSimulator, int numNeighbours, double probInsideInfection, Properties agentProperties) {
         super(id, networkSimulator, numNeighbours, probInsideInfection);
         this.frequencyPing = Long.parseLong(agentProperties.getProperty("pingTime"));
-        this.multiplierVar = Double.parseDouble(agentProperties.getProperty("multiplierVar"));
+        this.averageDifference = Double.parseDouble(agentProperties.getProperty("averageDifference"));
         this.trustThreshold = Double.parseDouble(agentProperties.getProperty("trustThreshold"));
         this.numSavedPings = Integer.parseInt(agentProperties.getProperty("numSavedPings"));
     }
@@ -63,7 +63,7 @@ public class FaultDetectorMemory extends FaultDetector {
 
         System.out.println("t = " + time + "[" + getId() + "][" + server + "]\ttotalMean: " + totalMean + " kmean: " + kMean + " totalVar: " + totalVar + " kVar: " + kVar);
 
-        return (meanDelta > multiplierVar) ||
+        return (meanDelta > averageDifference) ||
                 fdTrust < trustThreshold;
     }
 
